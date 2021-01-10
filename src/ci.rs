@@ -73,9 +73,15 @@ impl Protocol {
             extensions: 0,
         }
     }
-    /// Annotate extension to the protocol.
-    pub fn with_extension(mut self, ext: u8) -> Self {
-        self.extensions = ext;
+    /// Notate the device supports the jitter reduction extension
+    pub fn with_jitter_reduction(mut self) -> Self {
+        self.extensions |= 0b0000_00001;
+        self
+    }
+    /// Notate the device supports UMPs larger than 64 bits. Only applicable for MIDI 1.
+    pub fn with_large_packets (mut self) -> Self {
+        debug_assert_eq!(self.midi_version, MidiVersion::Midi1);
+        self.extensions |= 0b0000_0010;
         self
     }
     /// Add an additional version number. NOTE: is not MIDI 1 vs MIDI 2.
@@ -177,6 +183,55 @@ impl DeviceDiscovery {
         self.ci_support |= 0b0000_1000;
         self
     }
+}
+
+/// Sent when a device requests a new protocol for communication
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct SetNewProtocol {
+    pub protocol:Protocol,
+    pub authority:u8
+}
+
+impl SetNewProtocol {
+    /// Construct a new SetNewProtocol message
+    pub fn new(p:Protocol, a:AuthorityLevel) -> Self {
+        Self {
+            protocol: p, 
+            authority: a as u8
+        }
+    }
+    /// Notate additional authority for the request. Must be less than 16
+    pub fn with_additional_authority (mut self, a:u8) -> Self {
+        debug_assert!(a < 16); 
+        self.authority |= a;
+        self
+    }
+}
+
+pub trait CapabilityInquiryMessage {
+    /// The authority level of the message
+    fn authority(&self) -> AuthorityLevel {
+        AuthorityLevel::ReservedLower
+    }
+
+    /// The category of a CI message
+    fn category(&self) -> Category;
+
+    /// The subcategory (type) of CI message
+    fn subcategory(&self) -> u8;
+
+    /// Source of the message
+    fn source(&self) -> MUID;
+
+    /// Destination address of the message
+    fn dest(&self) -> MUID;
+
+    /// Used for targeting a specific MIDI channel on a device, value 0x7f corresponds
+    /// to the entire MIDI port.
+    fn device_id(&self) -> u8 {
+        0x7f
+    }
+    fn data(&self) -> &'_ [u8];
 }
 
 /// Represents the various management authority levels required by some MIDI specifications.
