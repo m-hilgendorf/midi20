@@ -9,12 +9,12 @@ use core::ops::Deref;
 /// A universal midi packet (UMP) is a 32, 64, 96, or 128 bit slice of serialized
 /// MIDI data that is parsed into midi messages, or serialized from them.
 ///
-/// Usage: 
+/// Usage:
 /// ```rust
 /// use midi::{ump::UMP, message::*};
 /// let cc: MidiMessage = ChannelVoice::ControlChange { channel: 0, control: 7, value: 64 }.into_message();
 /// let ump: UMP = cc.into();
-/// println!("{:?}", UMP); 
+/// println!("{:?}", UMP);
 /// ```
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub enum UMP {

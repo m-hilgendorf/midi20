@@ -130,29 +130,13 @@ impl IntoMidiMessage for SystemRealtime {
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
 pub enum LegacyChannelVoice {
     /// A note ON message (begin playing)
-    NoteOn {
-        channel: u8,
-        note: u8,
-        vel: u8,
-    },
+    NoteOn { channel: u8, note: u8, vel: u8 },
     /// A note OFF message (stop playing)
-    NoteOff {
-        channel: u8,
-        note: u8,
-        vel: u8,
-    },
+    NoteOff { channel: u8, note: u8, vel: u8 },
     /// Polyphonic key pressure, also called aftertouch.
-    PolyPressure {
-        channel: u8,
-        note: u8,
-        pressure: u8,
-    },
+    PolyPressure { channel: u8, note: u8, pressure: u8 },
     /// A control change (CC) message.
-    ControlChange {
-        channel: u8,
-        control: u8,
-        value: u8,
-    },
+    ControlChange { channel: u8, control: u8, value: u8 },
     /// A program change message.
     ProgramChange {
         channel: u8,
@@ -166,10 +150,7 @@ pub enum LegacyChannelVoice {
         _reserved: u8,
     },
     /// A pitch bend message. Data is a 14 bit unsigned value.
-    PitchBend {
-        channel: u8,
-        data: u16,
-    },
+    PitchBend { channel: u8, data: u16 },
 }
 
 impl IntoMidiMessage for LegacyChannelVoice {
@@ -185,15 +166,15 @@ impl IntoMidiMessage for LegacyChannelVoice {
 /// MIDI 2.0 channel voice messages
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
 pub enum ChannelVoice {
-    /// A registered parameter, per-note. Like a CC, but only applied to a single 
-    /// voice and pulled from a set of registered parameter numbers (RPN). 
+    /// A registered parameter, per-note. Like a CC, but only applied to a single
+    /// voice and pulled from a set of registered parameter numbers (RPN).
     RegPerNoteCtrl {
         channel: u8,
         note: u8,
         control: u8,
         data: u32,
     },
-    /// An assignmable parameter. Like a CC, but only applied to a single voice 
+    /// An assignmable parameter. Like a CC, but only applied to a single voice
     /// and may be assignable by the the user or device (ARPN).
     AsgnPerNoteCtrl {
         channel: u8,
@@ -215,7 +196,7 @@ pub enum ChannelVoice {
         index: u8,
         data: u32,
     },
-    /// A relative registered control. 
+    /// A relative registered control.
     RelRegCtrl {
         channel: u8,
         bank: u8,
@@ -230,11 +211,7 @@ pub enum ChannelVoice {
         data: u32,
     },
     /// Pitch bend, but only for one voice.
-    PerNotePitchBnd {
-        channel: u8,
-        note: u8,
-        data: u32,
-    },
+    PerNotePitchBnd { channel: u8, note: u8, data: u32 },
     /// A note OFF message (stop playing).
     NoteOff {
         channel: u8,
@@ -252,17 +229,9 @@ pub enum ChannelVoice {
         attr_val: u16,
     },
     /// Polyphonic key pressure, also called aftertouch
-    PolyPressure {
-        channel: u8,
-        note: u8,
-        data: u32,
-    },
+    PolyPressure { channel: u8, note: u8, data: u32 },
     /// A control change (CC) message
-    ControlChange {
-        channel: u8,
-        control: u8,
-        data: u32,
-    },
+    ControlChange { channel: u8, control: u8, data: u32 },
     /// A program change message
     ProgramChange {
         channel: u8,
@@ -271,21 +240,11 @@ pub enum ChannelVoice {
         bank: u16,
     },
     /// Channel pressure message, also called aftertouch
-    ChannelPressure {
-        channel: u8,
-        data: u32,
-    },
+    ChannelPressure { channel: u8, data: u32 },
     /// Channel-wide pitch bend, applied to every note.
-    PitchBend {
-        channel: u8,
-        data: u32,
-    },
+    PitchBend { channel: u8, data: u32 },
     /// A per-note management message.
-    PerNoteMngmt {
-        channel: u8,
-        note: u8,
-        flags: u8,
-    },
+    PerNoteMngmt { channel: u8, note: u8, flags: u8 },
 }
 
 impl IntoMidiMessage for ChannelVoice {
