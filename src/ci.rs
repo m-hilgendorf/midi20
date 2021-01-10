@@ -179,32 +179,6 @@ impl DeviceDiscovery {
     }
 }
 
-pub trait CapabilityInquiryMessage {
-    /// The authority level of the message
-    fn authority(&self) -> AuthorityLevel {
-        AuthorityLevel::ReservedLower
-    }
-
-    /// The category of a CI message
-    fn category(&self) -> Category;
-
-    /// The subcategory (type) of CI message
-    fn subcategory(&self) -> u8;
-
-    /// Source of the message
-    fn source(&self) -> MUID;
-
-    /// Destination address of the message
-    fn dest(&self) -> MUID;
-
-    /// Used for targeting a specific MIDI channel on a device, value 0x7f corresponds
-    /// to the entire MIDI port.
-    fn device_id(&self) -> u8 {
-        0x7f
-    }
-    fn data(&self) -> &'_ [u8];
-}
-
 /// Represents the various management authority levels required by some MIDI specifications.
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -218,45 +192,7 @@ pub enum AuthorityLevel {
     Endpoint = 0x30,
     /// Processors like arpeggiators, sequencers, etc
     EventProcessor = 0x20,
-    ///
     Transport = 0x10,
     /// Reserved for future use
     ReservedLower = 0x00,
-}
-
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Category {
-    Reserved = 0x00,
-    ProtocolNegotiation = 0x10,
-    ProfileConfiguration = 0x20,
-    PropertyExchange = 0x30,
-    Management = 0x70,
-}
-
-pub fn category(byte: u8) -> Category {
-    if byte < 0x10 || (byte >= 0x40 && byte < 0x70) || (byte >= 0x80) {
-        Category::Reserved
-    } else if byte < 0x20 {
-        Category::ProtocolNegotiation
-    } else if byte < 0x30 {
-        Category::ProfileConfiguration
-    } else {
-        Category::Management
-    }
-}
-
-/// Helper to create an authority byte
-pub fn authority(major: AuthorityLevel, minor: u8) -> u8 {
-    debug_assert!(minor < 0x0f);
-    debug_assert!(major != AuthorityLevel::ReservedUpper);
-    debug_assert!(major != AuthorityLevel::ReservedLower);
-    (major as u8) | minor
-}
-
-pub enum CiMessage {
-    ProtocolNegotiation,
-    ProfileConfiguration,
-    PropertyExchange,
-    Management,
 }
