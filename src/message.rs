@@ -40,6 +40,8 @@ pub enum MidiMessageData {
     LegacyChannelVoice(LegacyChannelVoice),
     /// MIDI 2.0 channel voice messages
     ChannelVoice(ChannelVoice),
+    /// Flex data messages
+    Flex(Flex),
     /// 64 bit data messages
     Data64(Data64),
     /// 128 bit data messages
@@ -253,6 +255,296 @@ impl IntoMidiMessage for ChannelVoice {
         MidiMessage {
             group,
             data: MidiMessageData::ChannelVoice(self),
+        }
+    }
+}
+
+/// Flex data messages: real time messages with limited variability of size.
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
+pub enum Flex {
+    /// Sets musical tempo by declaring the number of 10 nanosecond units per quarter note.
+    SetTempo(u32),
+    /// Declares and sets a Time Signature for subsequent bars.
+    SetTimeSignature {
+        /// A value from 1 to 256, supporting up to 256 beats in a bar.
+        numerator: u8,
+        /// A value in negative power of 2 (2 represents a quarter note, 3 represents an eighth note, etc.) If the value is set to zero, there is a non-standard denominator.
+        denominator: u8,
+        /// Expresses the number of 1/32 notes in 24 MIDI Clocks.
+        number_of_32n: u8,
+    },
+    /// Sets metronome functions.
+    SetMetronome {
+        /// Number of MIDI Clocks per Primary Click.
+        /// 1 tick is 1/96
+        /// 24 ticks is 1/4
+        clocks_per_click: u8,
+        /// Sets the number of Primary Clicks between each accent.
+        bar_accents: [u8; 3],
+        /// Sets number of clicks in between Primary Clicks.
+        subdivision_clicks: [u8; 2],
+    },
+    /// Sets the Key Signature for up to 7 sharps or up to 7 flats
+    SetKeySignature {
+        address: FlexAddress,
+        /// The number of sharps(+) or flats(-).
+        sharps_or_flats: i8,
+        /// The tonic note (A = 1, G = 7, others are non-standard)
+        tonic_note: u8,
+    },
+    /// Declares the name of a chord
+    SetChordName(FlexAddress, [u8; 12]),
+    /// Contains text encoded in UTF-8 format
+    TextMessageCommonFormat {
+        /// determines the address destination of each UMP: group, channel, or <reserved>
+        address: FlexAddress,
+        /// determines the role of each UMP in a Flex Data Message
+        format: FlexFormat,
+        /// provides up to 256 (text) message classifications
+        status: FlexStatus,
+        data: [u8; 12],
+    },
+}
+
+/// Determines the destination of each UMP.
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
+pub enum FlexAddress {
+    Channel(u8),
+    Group(u8),
+    _Reserved1(u8),
+    _Reserved2(u8),
+}
+
+impl From<FlexAddress> for u8 {
+    fn from(value: FlexAddress) -> Self {
+        match value {
+            FlexAddress::Channel(channel) => 0 << 4 | channel,
+            FlexAddress::Group(group) => 1 << 4 | group,
+            FlexAddress::_Reserved1(cccc) => 2 << 4 | cccc,
+            FlexAddress::_Reserved2(cccc) => 3 << 4 | cccc,
+        }
+    }
+}
+
+impl From<u8> for FlexAddress {
+    fn from(value: u8) -> Self {
+        let status = value >> 4 & 0b0011;
+        let cccc = value & 0x0F;
+        match status {
+            0 => FlexAddress::Channel(cccc),
+            1 => FlexAddress::Group(cccc),
+            2 => FlexAddress::_Reserved1(cccc),
+            3 => FlexAddress::_Reserved2(cccc),
+            _ => unreachable!(),
+        }
+    }
+}
+
+/// Provides up to 256 message classifications for Text Message Common Format.
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
+pub enum FlexStatus {
+    SetupAndPerformance, // pertains only to non-Text messages
+    MetadataText(FlexMetadataText),
+    PerformanceTextEvent(FlexPerformanceTextEvent),
+    Reserved { status_bank: u8, status: u8 },
+}
+
+impl FlexStatus {
+    pub fn from_bytes(status_bank: u8, status: u8) -> Self {
+        let joined: u16 = (status_bank as u16) << 8 | status as u16;
+        Self::from(joined)
+    }
+
+    pub fn status_bank_byte(&self) -> u8 {
+        match self {
+            FlexStatus::SetupAndPerformance => 0x00,
+            FlexStatus::MetadataText(_) => 0x01,
+            FlexStatus::PerformanceTextEvent(_) => 0x02,
+            FlexStatus::Reserved {
+                status_bank,
+                status,
+            } => *status_bank,
+        }
+    }
+
+    pub fn status_byte(&self) -> u8 {
+        match self {
+            FlexStatus::SetupAndPerformance => 0x00,
+            FlexStatus::MetadataText(status) => u8::from(*status),
+            FlexStatus::PerformanceTextEvent(status) => u8::from(*status),
+            FlexStatus::Reserved {
+                status_bank,
+                status,
+            } => *status,
+        }
+    }
+}
+
+impl From<FlexStatus> for u16 {
+    fn from(value: FlexStatus) -> Self {
+        match value {
+            FlexStatus::SetupAndPerformance => 0,
+            FlexStatus::MetadataText(status) => 0x01 << 8 | u8::from(status) as u16,
+            FlexStatus::PerformanceTextEvent(status) => 0x02 << 8 | u8::from(status) as u16,
+            FlexStatus::Reserved {
+                status_bank,
+                status,
+            } => (status_bank as u16) << 8 | status as u16,
+        }
+    }
+}
+
+impl From<u16> for FlexStatus {
+    fn from(value: u16) -> Self {
+        let status_bank = (value >> 8) as u8;
+        let status = (value & 0x00FF) as u8;
+        match status_bank {
+            0x00 => Self::SetupAndPerformance,
+            0x01 => Self::MetadataText(status.into()),
+            0x02 => Self::PerformanceTextEvent(status.into()),
+            _ => Self::Reserved {
+                status_bank,
+                status,
+            },
+        }
+    }
+}
+
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
+pub enum FlexMetadataText {
+    Unknown,
+    ProjectName,
+    CompositionName,
+    MidiClipName,
+    CopyrightNotice,
+    ComposerName,
+    LyricistName,
+    ArrangerName,
+    PublisherName,
+    PrimaryPerformerName,
+    AccompanyingPerformerName,
+    RecordingDate,
+    RecordingLocation,
+}
+
+impl From<u8> for FlexMetadataText {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::Unknown,
+            1 => Self::ProjectName,
+            2 => Self::CompositionName,
+            3 => Self::MidiClipName,
+            4 => Self::CopyrightNotice,
+            5 => Self::ComposerName,
+            6 => Self::LyricistName,
+            7 => Self::ArrangerName,
+            8 => Self::PublisherName,
+            9 => Self::PrimaryPerformerName,
+            10 => Self::AccompanyingPerformerName,
+            11 => Self::RecordingDate,
+            12 => Self::RecordingLocation,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl From<FlexMetadataText> for u8 {
+    fn from(value: FlexMetadataText) -> Self {
+        match value {
+            FlexMetadataText::Unknown => 0,
+            FlexMetadataText::ProjectName => 1,
+            FlexMetadataText::CompositionName => 2,
+            FlexMetadataText::MidiClipName => 3,
+            FlexMetadataText::CopyrightNotice => 4,
+            FlexMetadataText::ComposerName => 5,
+            FlexMetadataText::LyricistName => 6,
+            FlexMetadataText::ArrangerName => 7,
+            FlexMetadataText::PublisherName => 8,
+            FlexMetadataText::PrimaryPerformerName => 9,
+            FlexMetadataText::AccompanyingPerformerName => 10,
+            FlexMetadataText::RecordingDate => 11,
+            FlexMetadataText::RecordingLocation => 12,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
+pub enum FlexPerformanceTextEvent {
+    Unknown,
+    Lyrics,
+    LyricsLanguage,
+    Ruby,
+    RubyLanguage,
+}
+
+impl From<u8> for FlexPerformanceTextEvent {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::Unknown,
+            1 => Self::Lyrics,
+            2 => Self::LyricsLanguage,
+            3 => Self::Ruby,
+            4 => Self::RubyLanguage,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl From<FlexPerformanceTextEvent> for u8 {
+    fn from(value: FlexPerformanceTextEvent) -> Self {
+        match value {
+            FlexPerformanceTextEvent::Unknown => 0,
+            FlexPerformanceTextEvent::Lyrics => 1,
+            FlexPerformanceTextEvent::LyricsLanguage => 2,
+            FlexPerformanceTextEvent::Ruby => 3,
+            FlexPerformanceTextEvent::RubyLanguage => 4,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
+pub enum FlexFormat {
+    SinglePacket,
+    Start,
+    Continue,
+    End,
+}
+
+impl FlexFormat {
+    pub fn extract_from_byte(byte: u8) -> FlexFormat {
+        (byte >> 6).into()
+    }
+}
+
+impl From<FlexFormat> for u8 {
+    fn from(value: FlexFormat) -> Self {
+        match value {
+            FlexFormat::SinglePacket => 0,
+            FlexFormat::Start => 1,
+            FlexFormat::Continue => 2,
+            FlexFormat::End => 3,
+        }
+    }
+}
+
+impl From<u8> for FlexFormat {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::SinglePacket,
+            1 => Self::Start,
+            2 => Self::Continue,
+            3 => Self::End,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl IntoMidiMessage for Flex {
+    fn into_msg(self, group: u8) -> MidiMessage {
+        debug_assert!(group < 16);
+        MidiMessage {
+            group,
+            data: MidiMessageData::Flex(self),
         }
     }
 }

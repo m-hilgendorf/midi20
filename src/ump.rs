@@ -1,7 +1,7 @@
 //! Implements serializing and deserializing MIDI messages as universal midi packets (UMP)
 use crate::message::{
-    ChannelVoice, Data128, Data64, LegacyChannelVoice, MidiMessage, MidiMessageData, SystemCommon,
-    SystemRealtime, Utility,
+    ChannelVoice, Data128, Data64, Flex, FlexAddress, FlexFormat, FlexStatus, LegacyChannelVoice,
+    MidiMessage, MidiMessageData, SystemCommon, SystemRealtime, Utility,
 };
 use core::borrow::Borrow;
 use core::ops::Deref;
@@ -109,6 +109,7 @@ impl From<UMP> for MidiMessage {
             UMP::U96(bytes) => undefined(bytes[0] & 0x0f, UMP::U96(bytes)),
             UMP::U128(bytes) => match bytes[0] >> 4 {
                 5 => data128(bytes),
+                0xD => flex(bytes),
                 _ => undefined(bytes[0] & 0x0f, UMP::U128(bytes)),
             },
         }
@@ -121,6 +122,161 @@ impl From<MidiMessage> for UMP {
         let data = msg.data;
 
         match data {
+            MidiMessageData::Flex(flex) => {
+                let msg_type_and_group = 0xD << 4 | group;
+                let group_address = 1 << 4;
+                let setup_and_performance_status_bank = 0;
+
+                let tempo_status: u8 = 0x00;
+                let time_sig_status: u8 = 0x01;
+                let metronome_status: u8 = 0x02;
+                let key_sig_status: u8 = 0x05;
+                let chord_name_status: u8 = 0x06;
+
+                match flex {
+                    Flex::SetTempo(tempo) => {
+                        let bytes = tempo.to_le_bytes();
+                        UMP::U128([
+                            msg_type_and_group,
+                            group_address,
+                            setup_and_performance_status_bank,
+                            tempo_status,
+                            //
+                            bytes[0],
+                            bytes[1],
+                            bytes[2],
+                            bytes[3],
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                        ])
+                    }
+                    Flex::SetTimeSignature {
+                        numerator,
+                        denominator,
+                        number_of_32n,
+                    } => UMP::U128([
+                        msg_type_and_group,
+                        group_address,
+                        setup_and_performance_status_bank,
+                        time_sig_status,
+                        //
+                        numerator,
+                        denominator,
+                        numerator,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                    ]),
+                    Flex::SetMetronome {
+                        clocks_per_click,
+                        bar_accents,
+                        subdivision_clicks,
+                    } => UMP::U128([
+                        msg_type_and_group,
+                        group_address,
+                        setup_and_performance_status_bank,
+                        metronome_status,
+                        //
+                        clocks_per_click,
+                        bar_accents[0],
+                        bar_accents[1],
+                        bar_accents[2],
+                        //
+                        subdivision_clicks[0],
+                        subdivision_clicks[1],
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                    ]),
+                    Flex::SetKeySignature {
+                        address,
+                        sharps_or_flats,
+                        tonic_note,
+                    } => UMP::U128([
+                        msg_type_and_group,
+                        address.into(),
+                        setup_and_performance_status_bank,
+                        key_sig_status,
+                        //
+                        sharps_or_flats as u8,
+                        tonic_note,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                    ]),
+                    Flex::SetChordName(flex_address, bytes) => UMP::U128([
+                        msg_type_and_group,
+                        flex_address.into(),
+                        setup_and_performance_status_bank,
+                        chord_name_status,
+                        //
+                        bytes[0],
+                        bytes[1],
+                        bytes[2],
+                        bytes[3],
+                        //
+                        bytes[4],
+                        bytes[5],
+                        bytes[6],
+                        bytes[7],
+                        //
+                        bytes[8],
+                        bytes[9],
+                        bytes[10],
+                        bytes[11],
+                    ]),
+                    Flex::TextMessageCommonFormat {
+                        address,
+                        format,
+                        status,
+                        data,
+                    } => {
+                        UMP::U128([
+                            msg_type_and_group,
+                            u8::from(format) << 6 | u8::from(address),
+                            status.status_bank_byte(),
+                            status.status_byte(),
+                            //
+                            data[0],
+                            data[1],
+                            data[2],
+                            data[3],
+                            //
+                            data[4],
+                            data[5],
+                            data[6],
+                            data[7],
+                            //
+                            data[8],
+                            data[9],
+                            data[10],
+                            data[11],
+                        ])
+                    }
+                }
+            }
             MidiMessageData::Undefined(ump) => ump,
             MidiMessageData::Data64(data) => UMP::U64(data.bytes()),
             MidiMessageData::Data128(data) => UMP::U128(data.bytes()),
@@ -534,6 +690,82 @@ fn channel_voice1(bytes: [u8; 4]) -> MidiMessage {
             }
         }
         _ => unreachable!(),
+    }
+}
+
+fn flex(bytes: [u8; 16]) -> MidiMessage {
+    let group = bytes[0] & 0x0f;
+    let channel_or_group = bytes[1] & 0x0f;
+    let address = bytes[1] >> 4;
+    let address: FlexAddress = match address {
+        0 => FlexAddress::Channel(channel_or_group),
+        1 => FlexAddress::Group(channel_or_group),
+        2 => FlexAddress::_Reserved1(channel_or_group),
+        3 => FlexAddress::_Reserved2(channel_or_group),
+        _ => unreachable!(),
+    };
+    let status = bytes[3];
+    match status {
+        0x0 => {
+            use core::convert::TryInto;
+            let (ns_per_qn_bytes, rest) = bytes.split_at(core::mem::size_of::<u32>());
+            let ns_per_qn = u32::from_le_bytes(ns_per_qn_bytes.try_into().unwrap());
+            MidiMessage {
+                group,
+                data: MidiMessageData::Flex(Flex::SetTempo(ns_per_qn)),
+            }
+        }
+        // Set time signature
+        0x1 => MidiMessage {
+            group,
+            data: MidiMessageData::Flex(Flex::SetTimeSignature {
+                numerator: bytes[5],
+                denominator: bytes[6],
+                number_of_32n: bytes[7],
+            }),
+        },
+        // Set metronome
+        0x2 => MidiMessage {
+            group,
+            data: MidiMessageData::Flex(Flex::SetMetronome {
+                clocks_per_click: bytes[5],
+                bar_accents: [bytes[6], bytes[7], bytes[8]],
+                subdivision_clicks: [bytes[9], bytes[10]],
+            }),
+        },
+        // Set Key Signature
+        0x05 => MidiMessage {
+            group,
+            data: MidiMessageData::Flex(Flex::SetKeySignature {
+                address,
+                sharps_or_flats: bytes[5] as i8,
+                tonic_note: bytes[6],
+            }),
+        },
+        // Set Chord Name
+        0x06 => MidiMessage {
+            group,
+            data: MidiMessageData::Flex(Flex::SetChordName(
+                address,
+                [
+                    bytes[4], bytes[5], bytes[6], bytes[7], bytes[8], bytes[9], bytes[10],
+                    bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
+                ],
+            )),
+        },
+        // Text Message Common Format
+        _ => MidiMessage {
+            group,
+            data: MidiMessageData::Flex(Flex::TextMessageCommonFormat {
+                address,
+                format: FlexFormat::extract_from_byte(bytes[1]),
+                status: FlexStatus::from_bytes(bytes[2], bytes[3]),
+                data: [
+                    bytes[4], bytes[5], bytes[6], bytes[7], bytes[8], bytes[9], bytes[10],
+                    bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
+                ],
+            }),
+        },
     }
 }
 
