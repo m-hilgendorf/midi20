@@ -79,7 +79,7 @@ impl Protocol {
         self
     }
     /// Notate the device supports UMPs larger than 64 bits. Only applicable for MIDI 1.
-    pub fn with_large_packets (mut self) -> Self {
+    pub fn with_large_packets(mut self) -> Self {
         debug_assert_eq!(self.midi_version, MidiVersion::Midi1);
         self.extensions |= 0b0000_0010;
         self
@@ -188,21 +188,21 @@ impl DeviceDiscovery {
 /// Sent when a device requests a new protocol for communication
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct SetNewProtocol {
-    pub protocol:Protocol,
-    pub authority:u8
+    pub protocol: Protocol,
+    pub authority: u8,
 }
 
 impl SetNewProtocol {
     /// Construct a new SetNewProtocol message
-    pub fn new(p:Protocol, a:AuthorityLevel) -> Self {
+    pub fn new(p: Protocol, a: AuthorityLevel) -> Self {
         Self {
-            protocol: p, 
-            authority: a as u8
+            protocol: p,
+            authority: a as u8,
         }
     }
     /// Notate additional authority for the request. Must be less than 16
-    pub fn with_additional_authority (mut self, a:u8) -> Self {
-        debug_assert!(a < 16); 
+    pub fn with_additional_authority(mut self, a: u8) -> Self {
+        debug_assert!(a < 16);
         self.authority |= a;
         self
     }
@@ -215,7 +215,7 @@ pub trait CapabilityInquiryMessage {
     }
 
     /// The category of a CI message
-    fn category(&self) -> Category;
+    // fn category(&self) -> Category;
 
     /// The subcategory (type) of CI message
     fn subcategory(&self) -> u8;
