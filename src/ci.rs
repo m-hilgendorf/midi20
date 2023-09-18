@@ -196,13 +196,13 @@ impl SetNewProtocol {
     /// Construct a new SetNewProtocol message
     pub fn new(p:Protocol, a:AuthorityLevel) -> Self {
         Self {
-            protocol: p, 
+            protocol: p,
             authority: a as u8
         }
     }
     /// Notate additional authority for the request. Must be less than 16
     pub fn with_additional_authority (mut self, a:u8) -> Self {
-        debug_assert!(a < 16); 
+        debug_assert!(a < 16);
         self.authority |= a;
         self
     }
