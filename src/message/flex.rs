@@ -363,9 +363,9 @@ pub mod payload {
         fn from(value: u32) -> Self {
             let bytes = value.to_ne_bytes();
             Self {
-                numerator: bytes[3],
-                denominator: bytes[2],
-                number_of_32n: bytes[1],
+                numerator: bytes[0],
+                denominator: bytes[1],
+                number_of_32n: bytes[2],
             }
         }
     }
@@ -395,9 +395,9 @@ pub mod payload {
         fn from(value: [u32; 2]) -> Self {
             let bytes = [value[0].to_ne_bytes(), value[1].to_ne_bytes()];
             FlexMetronome {
-                clocks_per_primary_click: bytes[0][3],
-                bar_accents: [bytes[0][2], bytes[0][1], bytes[0][0]],
-                subdivision_clicks: [bytes[1][3], bytes[1][2]],
+                clocks_per_primary_click: bytes[0][0],
+                bar_accents: [bytes[0][1], bytes[0][2], bytes[0][3]],
+                subdivision_clicks: [bytes[1][0], bytes[1][1]],
             }
         }
     }
@@ -406,16 +406,16 @@ pub mod payload {
         fn from(value: FlexMetronome) -> Self {
             [
                 u32::from_le_bytes([
-                    value.bar_accents[2],
-                    value.bar_accents[1],
-                    value.bar_accents[0],
                     value.clocks_per_primary_click,
+                    value.bar_accents[0],
+                    value.bar_accents[1],
+                    value.bar_accents[2],
                 ]),
                 u32::from_le_bytes([
-                    0,
-                    0,
-                    value.subdivision_clicks[1],
                     value.subdivision_clicks[0],
+                    value.subdivision_clicks[1],
+                    0,
+                    0,
                 ]),
             ]
         }
@@ -489,19 +489,19 @@ pub mod payload {
             ];
 
             FlexChordName {
-                tonic_alteration: i8_from_u4(bytes[0][3] >> 4),
-                tonic_note: (bytes[0][3] & 0xF).into(),
-                chord_type: (bytes[0][2]).into(),
+                tonic_alteration: i8_from_u4(bytes[0][0] >> 4),
+                tonic_note: (bytes[0][0] & 0xF).into(),
+                chord_type: (bytes[0][1]).into(),
                 chord_alterations: [
-                    bytes[0][1].into(),
-                    bytes[0][0].into(),
-                    bytes[1][3].into(),
-                    bytes[1][2].into(),
+                    bytes[0][2].into(),
+                    bytes[0][3].into(),
+                    bytes[1][0].into(),
+                    bytes[1][1].into(),
                 ],
-                bass_alteration: i8_from_u4(bytes[2][3] >> 4),
-                bass_note: (bytes[2][3] & 0xF).into(),
-                bass_chord_type: bytes[2][2].into(),
-                bass_chord_alterations: [bytes[2][1].into(), bytes[2][0].into()],
+                bass_alteration: i8_from_u4(bytes[2][0] >> 4),
+                bass_note: (bytes[2][0] & 0xF).into(),
+                bass_chord_type: bytes[2][1].into(),
+                bass_chord_alterations: [bytes[2][2].into(), bytes[2][3].into()],
             }
         }
     }
@@ -844,11 +844,7 @@ mod tests {
                     denominator: 0xB1,
                     number_of_32n: 0xC2,
                 },
-                0xA0B1_C200u32.into()
-            );
-            assert_eq!(
-                FlexTimeSignature::from(0xA0B1_C200_u32),
-                FlexTimeSignature::from(0xA0B1_C2FF_u32)
+                0x00C2_B1A0_u32.into()
             );
         }
 
@@ -882,7 +878,7 @@ mod tests {
                     bar_accents: [0xB2, 0xC3, 0xD4],
                     subdivision_clicks: [0xE5, 0xF6],
                 },
-                [0xA1B2_C3D4, 0xE5F6_0000].into()
+                [0xD4C3_B2A1, 0x0000_F6E5].into()
             );
         }
 
@@ -894,7 +890,7 @@ mod tests {
                 subdivision_clicks: [0xE5, 0xF6],
             }
                 .into();
-            assert_eq!([0xA1B2_C3D4, 0xE5F6_0000], a);
+            assert_eq!([0xD4C3_B2A1, 0x0000_F6E5], a);
 
             let b: [u32; 3] = FlexMetronome {
                 clocks_per_primary_click: 0xA1,
@@ -903,7 +899,7 @@ mod tests {
             }
                 .into();
 
-            assert_eq!([0xA1B2_C3D4, 0xE5F6_0000, 0], b);
+            assert_eq!([0xD4C3_B2A1, 0x0000_F6E5, 0], b);
         }
 
         #[test]
@@ -957,7 +953,7 @@ mod tests {
                 bass_chord_type: 0x1A.into(),
                 bass_chord_alterations: [0x2B.into(), 0x3C.into()],
             };
-            let source = [0xA1B2_C3D4u32, 0xE5F6_0000, 0xF01A_2B3C];
+            let source = [0xD4C3_B2A1_u32, 0x_0000_F6E5, 0x3C2B_1AF0];
             assert_eq!(chord, source.into());
         }
     }
