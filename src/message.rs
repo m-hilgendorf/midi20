@@ -556,7 +556,6 @@ impl Message for Data128 {
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
 pub struct Flex(Packet128);
 
-
 impl Deref for Flex {
     type Target = [u32];
 
@@ -1722,4 +1721,115 @@ impl From<u8> for UmpStreamStatus {
             _ => Self::Reserved
         }
     }
+}
+
+
+impl UmpStream {
+    pub fn endpoint_discovery(&self) -> EndpointDiscovery {
+        EndpointDiscovery {
+            ump_major_version: self.data()[0],
+            ump_minor_version: self.data()[1],
+            filter_bitmap: self.data()[5],
+        }
+    }
+
+    pub fn endpoint_info_notification(&self) -> EndpointInfoNotification {
+        EndpointInfoNotification {
+            ump_major_version: self.data()[0],
+            ump_minor_version: self.data()[1],
+            function_block_count: self.data()[2],
+            m1_support: self.data()[3],
+            m2_support: self.data()[4],
+            jitter_reduction_support: self.data()[5],
+        }
+    }
+
+    pub fn endpoint_name_notification(&self) -> EndpointNameIdentification {
+        EndpointNameIdentification(self.data())
+    }
+
+    pub fn product_instance_id_notification(&self) -> ProductInstanceIdNotification {
+        ProductInstanceIdNotification(self.data())
+    }
+
+    pub fn stream_configuration_request(&self) -> StreamConfigurationRequest {
+        StreamConfigurationRequest {
+            protocol: self.data()[0],
+            jitter_reduction: self.data()[1],
+        }
+    }
+
+    pub fn stream_configuration_notification(&self) -> StreamConfigurationNotification {
+        StreamConfigurationNotification {
+            protocol: self.data()[0],
+            jitter_reduction: self.data()[1],
+        }
+    }
+
+    pub fn function_block_discovery(&self) -> FunctionBlockDiscovery {
+        FunctionBlockDiscovery {
+            function_block_count: self.data()[0],
+            filter_bitmap: self.data()[1],
+        }
+    }
+    pub fn function_block_info_notification(&self) -> FunctionBlockInfoNotification {
+        FunctionBlockInfoNotification {
+            function_block_count: self.data()[0],
+            function_block_data: [self.data()[1], self.data()[2], self.data()[3], self.data()[4], self.data()[5]],
+        }
+    }
+    pub fn function_block_name_notification(&self) -> FunctionBlockNameNotification {
+        todo!()
+    }
+}
+
+pub struct EndpointDiscovery {
+    ump_major_version: u8,
+    ump_minor_version: u8,
+    filter_bitmap: u8,
+}
+
+pub struct EndpointInfoNotification {
+    ump_major_version: u8,
+    ump_minor_version: u8,
+    function_block_count: u8,
+    m1_support: u8,
+    m2_support: u8,
+    jitter_reduction_support: u8,
+}
+
+pub struct DeviceIdentityNotification {
+    sysex_id: u8,
+    family_id: u8,
+    model_id: u8,
+    version_id: u8,
+}
+
+pub struct EndpointNameIdentification([u8; 14]);
+
+pub struct ProductInstanceIdNotification([u8; 14]);
+
+pub struct StreamConfigurationRequest {
+    protocol: u8,
+    jitter_reduction: u8,
+}
+
+pub struct StreamConfigurationNotification {
+    protocol: u8,
+    jitter_reduction: u8,
+}
+
+pub struct FunctionBlockDiscovery {
+    function_block_count: u8,
+    filter_bitmap: u8,
+}
+
+pub struct FunctionBlockInfoNotification {
+    function_block_count: u8,
+    function_block_data: [u8; 5],
+}
+
+pub struct FunctionBlockNameNotification {
+    function_block_count: u8,
+    name_bytes: [u8; 12],
 }
