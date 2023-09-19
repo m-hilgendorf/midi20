@@ -40,6 +40,9 @@ pub enum MidiMessageData {
     /// MIDI 2.0 channel voice messages
     ChannelVoice(ChannelVoice),
 
+    /// Flex data messages: real time messages with limited variability of size.
+    Flex(Flex),
+
     /// 64 bit data messages
     Data64(Data64),
 
@@ -49,7 +52,7 @@ pub enum MidiMessageData {
     Reserved32(Packet32),
     Reserved64(Packet64),
     Reserved96(Packet96),
-    Reservd128(Packet128),
+    Reserved128(Packet128),
 }
 
 /// Utility messages defined by the MIDI 2.0 specification, including
@@ -453,8 +456,8 @@ pub enum DataStatus {
     Start = 0x1,
     Continue = 0x2,
     End = 0x3,
-    MixedDataSetHeader = 0x4,
-    MixedDataSetPayload = 0x5,
+    MixedDataSetHeader = 0x8,
+    MixedDataSetPayload = 0x9,
 }
 
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
@@ -538,8 +541,8 @@ impl Message for Data128 {
             0x1 => Self::Status::Start,
             0x2 => Self::Status::Continue,
             0x3 => Self::Status::End,
-            0x4 => Self::Status::MixedDataSetHeader,
-            0x5 => Self::Status::MixedDataSetPayload,
+            0x8 => Self::Status::MixedDataSetHeader,
+            0x9 => Self::Status::MixedDataSetPayload,
             _ => unreachable!("Invalid status byte for 16 byte data message."),
         }
     }
@@ -552,6 +555,7 @@ impl Message for Data128 {
 /// Flex data messages: real time messages with limited variability of size.
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
 pub struct Flex(Packet128);
+
 
 impl Deref for Flex {
     type Target = [u32];
@@ -583,6 +587,39 @@ impl Message for Flex {
 
     fn data(&self) -> Self::Data {
         self.0[1..4].try_into().unwrap()
+    }
+}
+
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
+pub enum DataFormat {
+    SinglePacket,
+    Start,
+    Continue,
+    End,
+    Reserved,
+}
+
+impl From<u8> for DataFormat {
+    fn from(value: u8) -> Self {
+        match value {
+            0x0 => Self::SinglePacket,
+            0x1 => Self::Start,
+            0x2 => Self::Continue,
+            0x3 => Self::End,
+            _ => Self::Reserved,
+        }
+    }
+}
+
+impl From<DataFormat> for u8 {
+    fn from(value: DataFormat) -> Self {
+        match value {
+            DataFormat::SinglePacket => 0x0,
+            DataFormat::Start => 0x1,
+            DataFormat::Continue => 0x2,
+            DataFormat::End => 0x3,
+            DataFormat::Reserved => unreachable!(),
+        }
     }
 }
 
@@ -1395,19 +1432,20 @@ pub mod flex_payload {
                 }
                     .into()
             );
-            // assert_eq!(
-            //     u32::from_le(0x00C2_B1A0),
-            //     FlexTimeSignature {
-            //         numerator: 0xA0,
-            //         denominator: 0xB1,
-            //         number_of_32n: 0xC2,
-            //     }
-            //         .into()
-            // );
+            assert_eq!(
+                u32::from_le(0x00C2_B1A0),
+                FlexTimeSignature {
+                    numerator: 0xA0,
+                    denominator: 0xB1,
+                    number_of_32n: 0xC2,
+                }
+                    .into()
+            );
 
-            let a = u32::from_le(0x01020304);
-            let b = u32::from_le_bytes([0x01, 0x02, 0x03, 0x04]);
-            assert_eq!(a, b);
+            // why wouldn't this work?
+            // let a = u32::from_le(0x01020304);
+            // let b = u32::from_le_bytes([0x01, 0x02, 0x03, 0x04]);
+            // assert_eq!(a, b);
         }
 
         #[test]
