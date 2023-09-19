@@ -1,5 +1,6 @@
-use crate::{message::*, packet::*};
 use core::convert::TryInto;
+
+use crate::{message::*, packet::*};
 
 /// Write a message to an output buffer.
 pub fn encode(message: impl Message, buf: &mut [u8]) -> usize {
@@ -42,7 +43,7 @@ pub fn decode(buf: &[u8]) -> Option<(usize, MidiMessageData)> {
             let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
             let word2 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
             let packet = Packet::<3>([word0, word1, word2]);
-            Some((12,  MidiMessageData::Reserved96(packet)))
+            Some((12, MidiMessageData::Reserved96(packet)))
         }
         0x5 | 0xd | 0xe | 0xf => {
             let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
@@ -51,7 +52,8 @@ pub fn decode(buf: &[u8]) -> Option<(usize, MidiMessageData)> {
             let packet = Packet::<4>([word0, word1, word2, word3]);
             let data = match message_type {
                 0x5 => MidiMessageData::Data128(Data128::from_packet_unchecked(packet)),
-                _ => MidiMessageData::Reservd128(packet),
+                0xD => MidiMessageData::Flex(Flex::from_packet_unchecked(packet)),
+                _ => MidiMessageData::Reserved128(packet),
             };
             Some((16, data))
         }

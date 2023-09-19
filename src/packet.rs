@@ -47,12 +47,12 @@ pub enum MessageType {
     Reserved7 = 7,
     Reserved8 = 8,
     Reserved9 = 9,
-    Reserved10 = 10,
-    Reserved11 = 11,
-    Reserved12 = 12,
-    Reserved13 = 13,
-    Reserved14 = 14,
-    Reserved15 = 15,
+    Reserved10 = 0xA,
+    Reserved11 = 0xB,
+    Reserved12 = 0xC,
+    Flex = 0xD,
+    Reserved14 = 0xE,
+    UmpStream = 0xF,
 }
 
 impl From<u8> for MessageType {
@@ -71,9 +71,9 @@ impl From<u8> for MessageType {
             10 => MessageType::Reserved10,
             11 => MessageType::Reserved11,
             12 => MessageType::Reserved12,
-            13 => MessageType::Reserved13,
+            13 => MessageType::Flex,
             14 => MessageType::Reserved14,
-            15 => MessageType::Reserved15,
+            15 => MessageType::UmpStream,
             _ => unreachable!("Invalid value for message type."),
         }
     }
