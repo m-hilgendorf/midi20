@@ -52,7 +52,8 @@ pub fn decode(buf: &[u8]) -> Option<(usize, MidiMessageData)> {
             let packet = Packet::<4>([word0, word1, word2, word3]);
             let data = match message_type {
                 0x5 => MidiMessageData::Data128(Data128::from_packet_unchecked(packet)),
-                0xD => MidiMessageData::Flex(Flex::from_packet_unchecked(packet)),
+                0xd => MidiMessageData::Flex(Flex::from_packet_unchecked(packet)),
+                0xf => MidiMessageData::UmpStream(UmpStream::from_packet_unchecked(packet)),
                 _ => MidiMessageData::Reserved128(packet),
             };
             Some((16, data))
