@@ -1629,3 +1629,97 @@ impl From<(u8, u8, u32)> for RegisteredPerNoteCtlStatus {
         }
     }
 }
+
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
+pub struct UmpStream(Packet128);
+
+impl Deref for UmpStream {
+    type Target = [u32];
+
+    fn deref(&self) -> &Self::Target {
+        self.0.deref()
+    }
+}
+
+impl Message for UmpStream {
+    type Data = [u8; 14];
+    type Status = UmpStreamStatus;
+
+    fn message_type(&self) -> MessageType {
+        let msg_type = self.0.message_type().into();
+        debug_assert!(msg_type == MessageType::UmpStream, "Invalid message type");
+        msg_type
+    }
+
+    /// UMP Stream messages are group-less.
+    fn group(&self) -> u8 {
+        0
+    }
+
+    fn status(&self) -> Self::Status {
+        let bytes = self.0[0].to_ne_bytes();
+        bytes[1].into()
+    }
+
+    fn data(&self) -> Self::Data {
+        let bytes = [
+            self.0[0].to_ne_bytes(),
+            self.0[1].to_ne_bytes(),
+            self.0[2].to_ne_bytes(),
+            self.0[3].to_ne_bytes(),
+        ];
+        [
+            bytes[0][1], bytes[0][0],
+            bytes[1][3], bytes[1][2], bytes[1][1], bytes[1][0],
+            bytes[2][3], bytes[2][2], bytes[2][1], bytes[2][0],
+            bytes[3][3], bytes[3][2], bytes[3][1], bytes[3][0],
+        ]
+    }
+}
+
+impl UmpStream {
+    pub fn format(&self) -> DataFormat {
+        let bytes = self.0[0].to_ne_bytes();
+        (bytes[0] & 0xF).into()
+    }
+}
+
+pub enum UmpStreamStatus {
+    EndpointDiscovery,
+    EndpointInfoNotification,
+    DeviceIdentityNotification,
+    EndpointNameNotification,
+    ProductInstanceIdNotification,
+    StreamConfigurationRequest,
+    StreamConfigurationNotification,
+
+    FunctionBlockDiscovery,
+    FunctionBlockInfoNotification,
+    FunctionBlockNameNotification,
+
+    StartOfClip,
+    EndOfClip,
+    Reserved,
+}
+
+impl From<u8> for UmpStreamStatus {
+    fn from(value: u8) -> Self {
+        match value {
+            0x0 => Self::EndpointDiscovery,
+            0x1 => Self::EndpointInfoNotification,
+            0x2 => Self::DeviceIdentityNotification,
+            0x3 => Self::EndpointNameNotification,
+            0x4 => Self::ProductInstanceIdNotification,
+            0x5 => Self::StreamConfigurationRequest,
+            0x6 => Self::StreamConfigurationNotification,
+
+            0x10 => Self::FunctionBlockDiscovery,
+            0x11 => Self::FunctionBlockInfoNotification,
+            0x12 => Self::FunctionBlockNameNotification,
+
+            0x20 => Self::StartOfClip,
+            0x21 => Self::EndOfClip,
+            _ => Self::Reserved
+        }
+    }
+}
