@@ -641,24 +641,10 @@ fn i8_from_u4(n: u8) -> i8 {
 #[cfg(test)]
 mod tests {
     mod header {
-        use crate::message::{FlexAddress, FlexFormat, FlexStatus};
+        use crate::message::{FlexAddress, FlexStatus};
         use crate::message::flex::header::{
             FlexMetadataText, FlexPerformanceTextEvent, FlexSetupAndPerformance,
         };
-
-        #[test]
-        fn format_from_u8() {
-            assert_eq!(FlexFormat::from(0u8), FlexFormat::SinglePacket);
-            assert_eq!(FlexFormat::from(1u8), FlexFormat::Start);
-            assert_eq!(FlexFormat::from(2u8), FlexFormat::Continue);
-            assert_eq!(FlexFormat::from(3u8), FlexFormat::End);
-        }
-
-        #[test]
-        #[should_panic]
-        fn format_from_u4_overflow() {
-            let _a = FlexFormat::from(4u8);
-        }
 
         #[test]
         fn address_from_u8() {
