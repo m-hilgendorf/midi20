@@ -45,7 +45,7 @@ pub enum MidiVersion {
     Midi2 = 0x02,
 }
 
-/// 3 bytes identifying a protocol used in protocol negotation
+/// 3 bytes identifying a protocol used in protocol negotiation
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Protocol {
     /// The MIDI version of the protocol to use
@@ -79,14 +79,14 @@ impl Protocol {
         self
     }
     /// Notate the device supports UMPs larger than 64 bits. Only applicable for MIDI 1.
-    pub fn with_large_packets (mut self) -> Self {
+    pub fn with_large_packets(mut self) -> Self {
         debug_assert_eq!(self.midi_version, MidiVersion::Midi1);
         self.extensions |= 0b0000_0010;
         self
     }
     /// Add an additional version number. NOTE: is not MIDI 1 vs MIDI 2.
-    pub fn with_additional_version(mut self, vers: u8) -> Self {
-        self.version = vers;
+    pub fn with_additional_version(mut self, version: u8) -> Self {
+        self.version = version;
         self
     }
 }
@@ -97,7 +97,7 @@ impl Default for Protocol {
     }
 }
 
-/// Message to begin initializing protocol negotation. The spec allows for multiple protocls
+/// Message to begin initializing protocol negotiation. The spec allows for multiple protocols
 /// to be supported, this crate only supports a single preferred protocol until const generics
 /// are stabilized, as Rust does not support VLA members in structs.
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -107,7 +107,7 @@ pub struct InitiateProtocolNegotiation {
 }
 
 impl InitiateProtocolNegotiation {
-    /// Construct a new protocol negotation message
+    /// Construct a new protocol negotiation message
     pub fn new(auth: AuthorityLevel) -> Self {
         Self {
             authority: auth as u8,
@@ -188,20 +188,20 @@ impl DeviceDiscovery {
 /// Sent when a device requests a new protocol for communication
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct SetNewProtocol {
-    pub protocol:Protocol,
-    pub authority:u8
+    pub protocol: Protocol,
+    pub authority: u8,
 }
 
 impl SetNewProtocol {
     /// Construct a new SetNewProtocol message
-    pub fn new(p:Protocol, a:AuthorityLevel) -> Self {
+    pub fn new(p: Protocol, a: AuthorityLevel) -> Self {
         Self {
             protocol: p,
-            authority: a as u8
+            authority: a as u8,
         }
     }
     /// Notate additional authority for the request. Must be less than 16
-    pub fn with_additional_authority (mut self, a:u8) -> Self {
+    pub fn with_additional_authority(mut self, a: u8) -> Self {
         debug_assert!(a < 16);
         self.authority |= a;
         self
@@ -215,7 +215,7 @@ pub trait CapabilityInquiryMessage {
     }
 
     /// The category of a CI message
-    fn category(&self) -> Category;
+    // fn category(&self) -> Category;
 
     /// The subcategory (type) of CI message
     fn subcategory(&self) -> u8;
