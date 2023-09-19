@@ -648,14 +648,14 @@ mod tests {
 
         #[test]
         fn address_from_u8() {
-            assert_eq!(FlexAddress::from(0x00u8), FlexAddress::Channel(0));
-            assert_eq!(FlexAddress::from(0x0Fu8), FlexAddress::Channel(0xF));
-            assert_eq!(FlexAddress::from(0x10u8), FlexAddress::Group(0));
-            assert_eq!(FlexAddress::from(0x1Fu8), FlexAddress::Group(0xF));
-            assert_eq!(FlexAddress::from(0x20u8), FlexAddress::_Reserved1(0x0));
-            assert_eq!(FlexAddress::from(0x2Fu8), FlexAddress::_Reserved1(0xF));
-            assert_eq!(FlexAddress::from(0x3Fu8), FlexAddress::_Reserved2(0xF));
-            assert_eq!(FlexAddress::from(0x3Fu8), FlexAddress::_Reserved2(0xF));
+            assert_eq!(FlexAddress::Channel(0), 0x00_u8.into());
+            assert_eq!(FlexAddress::Channel(0xF), 0x0F_u8.into());
+            assert_eq!(FlexAddress::Group(0), 0x10_u8.into());
+            assert_eq!(FlexAddress::Group(0xF), 0x1F_u8.into());
+            assert_eq!(FlexAddress::_Reserved1(0x0), 0x20_u8.into());
+            assert_eq!(FlexAddress::_Reserved1(0xF), 0x2F_u8.into());
+            assert_eq!(FlexAddress::_Reserved2(0xF), 0x3F_u8.into());
+            assert_eq!(FlexAddress::_Reserved2(0xF), 0x3F_u8.into());
         }
 
         #[test]
@@ -665,22 +665,22 @@ mod tests {
 
         #[test]
         fn setup_and_performance_from_u8() {
-            assert_eq!(FlexSetupAndPerformance::SetTempo, 0x00u8.into());
-            assert_eq!(FlexSetupAndPerformance::SetTimeSignature, 0x01u8.into());
-            assert_eq!(FlexSetupAndPerformance::SetMetronome, 0x02u8.into());
-            assert_eq!(FlexSetupAndPerformance::SetKeySignature, 0x05u8.into());
-            assert_eq!(FlexSetupAndPerformance::SetChordName, 0x06u8.into());
+            assert_eq!(FlexSetupAndPerformance::SetTempo, 0x00_u8.into());
+            assert_eq!(FlexSetupAndPerformance::SetTimeSignature, 0x01_u8.into());
+            assert_eq!(FlexSetupAndPerformance::SetMetronome, 0x02_u8.into());
+            assert_eq!(FlexSetupAndPerformance::SetKeySignature, 0x05_u8.into());
+            assert_eq!(FlexSetupAndPerformance::SetChordName, 0x06_u8.into());
             assert_eq!(
                 FlexSetupAndPerformance::TextMessageCommonFormat(0x07),
-                0x07u8.into()
+                0x07_u8.into()
             );
             assert_eq!(
                 FlexSetupAndPerformance::TextMessageCommonFormat(0x0F),
-                0x0Fu8.into()
+                0x0F_u8.into()
             );
 
-            assert_eq!(FlexSetupAndPerformance::Undefined(0x03), 0x03u8.into());
-            assert_eq!(FlexSetupAndPerformance::Undefined(0x04), 0x04u8.into());
+            assert_eq!(FlexSetupAndPerformance::Undefined(0x03), 0x03_u8.into());
+            assert_eq!(FlexSetupAndPerformance::Undefined(0x04), 0x04_u8.into());
         }
 
         #[test]
@@ -691,22 +691,22 @@ mod tests {
 
         #[test]
         fn setup_and_performance_to_u8() {
-            assert_eq!(0x00u8, FlexSetupAndPerformance::SetTempo.into());
-            assert_eq!(0x01u8, FlexSetupAndPerformance::SetTimeSignature.into());
-            assert_eq!(0x02u8, FlexSetupAndPerformance::SetMetronome.into());
-            assert_eq!(0x05u8, FlexSetupAndPerformance::SetKeySignature.into());
-            assert_eq!(0x06u8, FlexSetupAndPerformance::SetChordName.into());
+            assert_eq!(0x00_u8, FlexSetupAndPerformance::SetTempo.into());
+            assert_eq!(0x01_u8, FlexSetupAndPerformance::SetTimeSignature.into());
+            assert_eq!(0x02_u8, FlexSetupAndPerformance::SetMetronome.into());
+            assert_eq!(0x05_u8, FlexSetupAndPerformance::SetKeySignature.into());
+            assert_eq!(0x06_u8, FlexSetupAndPerformance::SetChordName.into());
             assert_eq!(
-                0x07u8,
+                0x07_u8,
                 FlexSetupAndPerformance::TextMessageCommonFormat(0x07).into()
             );
             assert_eq!(
-                0x0Fu8,
+                0x0F_u8,
                 FlexSetupAndPerformance::TextMessageCommonFormat(0x0F).into()
             );
 
-            assert_eq!(0x03u8, FlexSetupAndPerformance::Undefined(0x03).into());
-            assert_eq!(0x04u8, FlexSetupAndPerformance::Undefined(0x04).into());
+            assert_eq!(0x03_u8, FlexSetupAndPerformance::Undefined(0x03).into());
+            assert_eq!(0x04_u8, FlexSetupAndPerformance::Undefined(0x04).into());
         }
 
         #[test]
@@ -734,19 +734,19 @@ mod tests {
 
         #[test]
         fn metadata_text_to_u8() {
-            assert_eq!(0x0u8, FlexMetadataText::Unknown.into());
-            assert_eq!(0x1u8, FlexMetadataText::ProjectName.into());
-            assert_eq!(0x2u8, FlexMetadataText::CompositionName.into());
-            assert_eq!(0x3u8, FlexMetadataText::MidiClipName.into());
-            assert_eq!(0x4u8, FlexMetadataText::CopyrightNotice.into());
-            assert_eq!(0x5u8, FlexMetadataText::ComposerName.into());
-            assert_eq!(0x6u8, FlexMetadataText::LyricistName.into());
-            assert_eq!(0x7u8, FlexMetadataText::ArrangerName.into());
-            assert_eq!(0x8u8, FlexMetadataText::PublisherName.into());
-            assert_eq!(0x9u8, FlexMetadataText::PrimaryPerformerName.into());
-            assert_eq!(0xAu8, FlexMetadataText::AccompanyingPerformerName.into());
-            assert_eq!(0xBu8, FlexMetadataText::RecordingDate.into());
-            assert_eq!(0xCu8, FlexMetadataText::RecordingLocation.into());
+            assert_eq!(0x0_u8, FlexMetadataText::Unknown.into());
+            assert_eq!(0x1_u8, FlexMetadataText::ProjectName.into());
+            assert_eq!(0x2_u8, FlexMetadataText::CompositionName.into());
+            assert_eq!(0x3_u8, FlexMetadataText::MidiClipName.into());
+            assert_eq!(0x4_u8, FlexMetadataText::CopyrightNotice.into());
+            assert_eq!(0x5_u8, FlexMetadataText::ComposerName.into());
+            assert_eq!(0x6_u8, FlexMetadataText::LyricistName.into());
+            assert_eq!(0x7_u8, FlexMetadataText::ArrangerName.into());
+            assert_eq!(0x8_u8, FlexMetadataText::PublisherName.into());
+            assert_eq!(0x9_u8, FlexMetadataText::PrimaryPerformerName.into());
+            assert_eq!(0xA_u8, FlexMetadataText::AccompanyingPerformerName.into());
+            assert_eq!(0xB_u8, FlexMetadataText::RecordingDate.into());
+            assert_eq!(0xC_u8, FlexMetadataText::RecordingLocation.into());
         }
 
         #[test]
@@ -766,11 +766,11 @@ mod tests {
 
         #[test]
         fn performance_text_into_u8() {
-            assert_eq!(0u8, FlexPerformanceTextEvent::Unknown.into());
-            assert_eq!(1u8, FlexPerformanceTextEvent::Lyrics.into());
-            assert_eq!(2u8, FlexPerformanceTextEvent::LyricsLanguage.into());
-            assert_eq!(3u8, FlexPerformanceTextEvent::RubyLyrics.into());
-            assert_eq!(4u8, FlexPerformanceTextEvent::RubyLyricsLanguage.into());
+            assert_eq!(0_u8, FlexPerformanceTextEvent::Unknown.into());
+            assert_eq!(1_u8, FlexPerformanceTextEvent::Lyrics.into());
+            assert_eq!(2_u8, FlexPerformanceTextEvent::LyricsLanguage.into());
+            assert_eq!(3_u8, FlexPerformanceTextEvent::RubyLyrics.into());
+            assert_eq!(4_u8, FlexPerformanceTextEvent::RubyLyricsLanguage.into());
         }
 
         #[test]
@@ -803,7 +803,7 @@ mod tests {
                 0x0200_u16,
                 FlexStatus::PerformanceTextEvent(0.into()).into()
             );
-            assert_eq!(0x0300_u16, FlexStatus::Reserved(0x03_00).into());
+            assert_eq!(0x0300_u16, FlexStatus::Reserved(0x0300).into());
         }
     }
 
@@ -847,8 +847,8 @@ mod tests {
                 0xA0B1_C200u32.into()
             );
             assert_eq!(
-                FlexTimeSignature::from(0xA0B1_C200u32),
-                FlexTimeSignature::from(0xA0B1_C2FFu32)
+                FlexTimeSignature::from(0xA0B1_C200_u32),
+                FlexTimeSignature::from(0xA0B1_C2FF_u32)
             );
         }
 
@@ -864,7 +864,7 @@ mod tests {
                     .into()
             );
             assert_eq!(
-                0xA0B1_C200u32,
+                0xA0B1_C200_u32,
                 FlexTimeSignature {
                     numerator: 0xA0,
                     denominator: 0xB1,
