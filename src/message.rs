@@ -5,7 +5,7 @@
 
 use core::ops::Deref;
 
-pub use data::{Data128, Data64, DataStatus};
+pub use data::{Data128, Data64, ExtendedDataFormat};
 pub use flex::{
     Flex, FlexAddress, FlexChordName, FlexKeySignature, FlexMetronome, FlexStatus,
     FlexTimeSignature,
@@ -106,44 +106,6 @@ impl From<DataFormat> for u8 {
     }
 }
 
-#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
-pub enum ExtendedDataFormat {
-    SinglePacket,
-    Start,
-    Continue,
-    End,
-    MixedDataSetHeader,
-    MixedDataSetPayload,
-    Reserved,
-}
-
-impl From<u8> for ExtendedDataFormat {
-    fn from(value: u8) -> Self {
-        match value {
-            0 => Self::SinglePacket,
-            1 => Self::Start,
-            2 => Self::Continue,
-            3 => Self::End,
-            8 => Self::MixedDataSetHeader,
-            9 => Self::MixedDataSetPayload,
-            _ => Self::Reserved,
-        }
-    }
-}
-
-impl From<ExtendedDataFormat> for u8 {
-    fn from(value: ExtendedDataFormat) -> Self {
-        match value {
-            ExtendedDataFormat::SinglePacket => 0,
-            ExtendedDataFormat::Start => 1,
-            ExtendedDataFormat::Continue => 2,
-            ExtendedDataFormat::End => 3,
-            ExtendedDataFormat::MixedDataSetHeader => 8,
-            ExtendedDataFormat::MixedDataSetPayload => 9,
-            ExtendedDataFormat::Reserved => unreachable!()
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
