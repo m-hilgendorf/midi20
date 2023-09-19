@@ -6,7 +6,7 @@ use core::ops::Deref;
 
 pub use data::{Data128, Data64, DataStatus};
 pub use flex::{
-    Flex, FlexAddress, FlexChordName, FlexFormat, FlexKeySignature, FlexMetronome, FlexStatus,
+    Flex, FlexAddress, FlexChordName, FlexKeySignature, FlexMetronome, FlexStatus,
     FlexTimeSignature,
 };
 pub use legacy_voice::{LegacyChannelVoice, LegacyChannelVoiceStatus};
