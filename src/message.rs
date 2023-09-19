@@ -2,6 +2,7 @@
 //!
 //! MIDI 2.0 Messages form a mostly flat abstract syntax tree. MIDI 1.0 types are represented by
 //! the [LegacyChannelVoice] enum.
+
 use core::ops::Deref;
 
 pub use data::{Data128, Data64, DataStatus};
@@ -72,6 +73,7 @@ pub enum MidiMessageData {
     Reserved128(Packet128),
 }
 
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
 pub enum DataFormat {
     SinglePacket,
     Start,
@@ -104,6 +106,7 @@ impl From<DataFormat> for u8 {
     }
 }
 
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
 pub enum ExtendedDataFormat {
     SinglePacket,
     Start,
@@ -139,5 +142,29 @@ impl From<ExtendedDataFormat> for u8 {
             ExtendedDataFormat::MixedDataSetPayload => 9,
             ExtendedDataFormat::Reserved => unreachable!()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::message::{DataFormat, ExtendedDataFormat};
+
+    #[test]
+    fn format_from_u8() {
+        assert_eq!(DataFormat::SinglePacket, 0u8.into());
+        assert_eq!(DataFormat::Start, 1u8.into());
+        assert_eq!(DataFormat::Continue, 2u8.into());
+        assert_eq!(DataFormat::End, 3u8.into());
+        assert_eq!(DataFormat::Reserved, 4u8.into());
+    }
+
+    #[test]
+    fn extended_format_from_u8() {
+        assert_eq!(ExtendedDataFormat::SinglePacket, 0u8.into());
+        assert_eq!(ExtendedDataFormat::Start, 1u8.into());
+        assert_eq!(ExtendedDataFormat::Continue, 2u8.into());
+        assert_eq!(ExtendedDataFormat::End, 3u8.into());
+        assert_eq!(ExtendedDataFormat::MixedDataSetHeader, 8u8.into());
+        assert_eq!(ExtendedDataFormat::MixedDataSetPayload, 9u8.into());
     }
 }
