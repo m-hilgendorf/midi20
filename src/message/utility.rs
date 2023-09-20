@@ -21,6 +21,12 @@ pub enum UtilityStatus {
 
     /// A Jitter reduction clock message.
     JrClock = 2,
+
+    /// Declares the unit of mesaure used by [UtilityStatus::DeltaClockstamp] messages.
+    DataClockstampTicksPerQuarternote = 3,
+
+    /// Declares the time of all following messages which occur before the next delta clockstamp message.
+    DeltaClockstamp = 4,
 }
 
 impl Utility {
@@ -56,6 +62,8 @@ impl Message for Utility {
             0 => Self::Status::NoOp,
             1 => Self::Status::JrTimestamp,
             2 => Self::Status::JrClock,
+            3 => Self::Status::DataClockstampTicksPerQuarternote,
+            4 => Self::Status::DeltaClockstamp,
             _ => unreachable!("Invalid status byte for utility message."),
         }
     }
