@@ -15,25 +15,37 @@ impl<const N: usize> Deref for Packet<N> {
 }
 
 impl<const N: usize> Packet<N> {
+    /// Return the message type byte of the packet.
     pub fn message_type(&self) -> u8 {
         self.0[0].to_ne_bytes()[0] >> 4
     }
 
+    /// Return the group byte of the packet.
     pub fn group(&self) -> u8 {
         self.0[0].to_ne_bytes()[0] & 0x0f
     }
 
+    /// Return the status byte of the packet.
     pub fn status(&self) -> u8 {
         // Lead
         self.0[0].to_ne_bytes()[1]
     }
 }
 
+/// A single word (32 bit) packet.
 pub type Packet32 = Packet<1>;
+
+/// A two word (64 bit) packet.
 pub type Packet64 = Packet<2>;
+
+/// A three word (96 bit) packet.
 pub type Packet96 = Packet<3>;
+
+/// A four word (128 bit) packet.
 pub type Packet128 = Packet<4>;
 
+/// A rich type representation of message types
+#[allow(missing_docs)]
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 #[repr(u8)]
 pub enum MessageType {

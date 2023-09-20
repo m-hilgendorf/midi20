@@ -5,12 +5,14 @@
 /// Represents braodcast messages, those intended to reach all devices
 pub const BROADCAST: MUID = MUID(0x0fff_ffff);
 
+/// Manufacturer Unique Identifiers (MUIDs).
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct MUID(u32);
 
 impl MUID {
+    /// Convert the MUID to bytes.
     pub fn to_bytes(&self) -> [u8; 4] {
-        self.0.to_le_bytes()
+        self.0.to_ne_bytes()
     }
 }
 

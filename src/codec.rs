@@ -1,3 +1,4 @@
+//! Helpers for encoding and decoding UMPs.
 use core::convert::TryInto;
 
 use crate::{message::*, packet::*};
@@ -20,10 +21,10 @@ pub fn decode(buf: &[u8]) -> Option<(usize, MidiMessageData)> {
         0x0 | 0x1 | 0x2 | 0x6 | 0x7 => {
             let packet = Packet::<1>([word0]);
             let data = match message_type {
-                0x0 => MidiMessageData::Utility(Utility::from_packet_unchecked(packet)),
-                0x1 => MidiMessageData::System(System::from_packet_unchecked(packet)),
+                0x0 => MidiMessageData::Utility(utility::Utility::from_packet_unchecked(packet)),
+                0x1 => MidiMessageData::System(system::System::from_packet_unchecked(packet)),
                 0x2 => MidiMessageData::LegacyChannelVoice(
-                    LegacyChannelVoice::from_packet_unchecked(packet),
+                    channel1::LegacyChannelVoice::from_packet_unchecked(packet),
                 ),
                 _ => MidiMessageData::Reserved32(packet),
             };
@@ -33,8 +34,10 @@ pub fn decode(buf: &[u8]) -> Option<(usize, MidiMessageData)> {
             let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
             let packet = Packet::<2>([word0, word1]);
             let data = match message_type {
-                0x3 => MidiMessageData::Data64(Data64::from_packet_unchecked(packet)),
-                0x4 => MidiMessageData::ChannelVoice(ChannelVoice::from_packet_unchecked(packet)),
+                0x3 => MidiMessageData::Data64(data::Data64::from_packet_unchecked(packet)),
+                0x4 => MidiMessageData::ChannelVoice(
+                    channel2::ChannelVoice::from_packet_unchecked(packet),
+                ),
                 _ => MidiMessageData::Reserved64(packet),
             };
             Some((8, data))
@@ -51,9 +54,11 @@ pub fn decode(buf: &[u8]) -> Option<(usize, MidiMessageData)> {
             let word3 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
             let packet = Packet::<4>([word0, word1, word2, word3]);
             let data = match message_type {
-                0x5 => MidiMessageData::Data128(Data128::from_packet_unchecked(packet)),
-                0xd => MidiMessageData::Flex(Flex::from_packet_unchecked(packet)),
-                0xf => MidiMessageData::UmpStream(UmpStream::from_packet_unchecked(packet)),
+                0x5 => MidiMessageData::Data128(data::Data128::from_packet_unchecked(packet)),
+                0xd => MidiMessageData::Flex(flex::Flex::from_packet_unchecked(packet)),
+                0xf => {
+                    MidiMessageData::UmpStream(ump_stream::UmpStream::from_packet_unchecked(packet))
+                }
                 _ => MidiMessageData::Reserved128(packet),
             };
             Some((16, data))
