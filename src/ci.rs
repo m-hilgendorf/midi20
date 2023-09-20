@@ -24,6 +24,7 @@ pub struct DeviceDiscovery {
 /// Used to handle MUID collisions.
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct InvalidateMUID {
+    /// The target MUID to invalidate.
     pub target: MUID,
 }
 
@@ -41,18 +42,23 @@ pub struct NotAcknowledged;
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum MidiVersion {
+    /// MIDI version 1.
     Midi1 = 0x01,
+
+    /// MIDI version 2.
     Midi2 = 0x02,
 }
 
 /// 3 bytes identifying a protocol used in protocol negotation
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Protocol {
-    /// The MIDI version of the protocol to use
+    /// The MIDI version of the protocol to use.
     pub midi_version: MidiVersion,
-    /// The version of the protocol to use
+
+    /// The version of the protocol to use.
     pub version: u8,
-    /// Any extensions of the protocol to use
+
+    /// Any extensions of the protocol to use.
     pub extensions: u8,
 }
 
@@ -61,10 +67,12 @@ impl Protocol {
     pub fn midi1() -> Self {
         Self::new(MidiVersion::Midi1)
     }
+
     /// Default midi2 protocol
     pub fn midi2() -> Self {
         Self::default()
     }
+
     /// Create a new protocol
     pub fn new(mv: MidiVersion) -> Self {
         Self {
@@ -73,17 +81,20 @@ impl Protocol {
             extensions: 0,
         }
     }
+
     /// Notate the device supports the jitter reduction extension
     pub fn with_jitter_reduction(mut self) -> Self {
         self.extensions |= 0b0000_00001;
         self
     }
+
     /// Notate the device supports UMPs larger than 64 bits. Only applicable for MIDI 1.
     pub fn with_large_packets(mut self) -> Self {
         debug_assert_eq!(self.midi_version, MidiVersion::Midi1);
         self.extensions |= 0b0000_0010;
         self
     }
+
     /// Add an additional version number. NOTE: is not MIDI 1 vs MIDI 2.
     pub fn with_additional_version(mut self, vers: u8) -> Self {
         self.version = vers;
@@ -102,8 +113,11 @@ impl Default for Protocol {
 /// are stabilized, as Rust does not support VLA members in structs.
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct InitiateProtocolNegotiation {
-    authority: u8,
-    preferred: Protocol,
+    /// The authority to use.
+    pub authority: u8,
+
+    /// Which version of the protocol to request.
+    pub preferred: Protocol,
 }
 
 impl InitiateProtocolNegotiation {
@@ -114,12 +128,14 @@ impl InitiateProtocolNegotiation {
             preferred: Protocol::default(),
         }
     }
+
     /// annotate additional authority level. Must be less than 16
     pub fn with_additional_authority(mut self, a: u8) -> Self {
         debug_assert!(a < 16);
         self.authority |= a;
         self
     }
+
     /// annotate a different preferred protocol
     pub fn with_preferred_protocol(mut self, p: Protocol) -> Self {
         self.preferred = p;
@@ -141,26 +157,31 @@ impl DeviceDiscovery {
             max_sysex_size: 128,
         }
     }
+
     /// Add a unique manufacturer code.
     pub fn with_manufacturer_code(mut self, manu: [u8; 3]) -> Self {
         self.manufacturer = manu;
         self
     }
+
     /// Add a device family code
     pub fn with_family_code(mut self, family: [u8; 2]) -> Self {
         self.family = family;
         self
     }
+
     /// Add a device model code
     pub fn with_model_code(mut self, model: [u8; 2]) -> Self {
         self.model = model;
         self
     }
+
     /// Add a software/firmware/hardware revision number
     pub fn with_revision(mut self, revision: u32) -> Self {
         self.revision = revision;
         self
     }
+
     /// Define the maximum length of sysex message the device may
     /// receive. Must be at least 128.
     pub fn with_max_sysex_length(mut self, len: u32) -> Self {
@@ -168,16 +189,19 @@ impl DeviceDiscovery {
         self.max_sysex_size = len;
         self
     }
+
     /// Notate the device supports protocol negotiation
     pub fn with_protocol_negotiation(mut self) -> Self {
         self.ci_support |= 0b0000_0010;
         self
     }
+
     /// Notate the device supports profile configuration.
     pub fn with_profile_configuration(mut self) -> Self {
         self.ci_support |= 0b0000_0100;
         self
     }
+
     /// Notate the device supports property exchange.
     pub fn with_property_exchange(mut self) -> Self {
         self.ci_support |= 0b0000_1000;
@@ -188,8 +212,11 @@ impl DeviceDiscovery {
 /// Sent when a device requests a new protocol for communication
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct SetNewProtocol {
-    pub protocol: Protocol,
+    /// The authority to use.
     pub authority: u8,
+
+    /// Which protocol to set.
+    pub protocol: Protocol,
 }
 
 impl SetNewProtocol {
@@ -208,6 +235,7 @@ impl SetNewProtocol {
     }
 }
 
+/// Helper trait for capability inquiry messages.
 pub trait CapabilityInquiryMessage {
     /// The authority level of the message
     fn authority(&self) -> AuthorityLevel {
@@ -231,6 +259,8 @@ pub trait CapabilityInquiryMessage {
     fn device_id(&self) -> u8 {
         0x7f
     }
+
+    /// The data contents of the message.
     fn data(&self) -> &'_ [u8];
 }
 
@@ -240,14 +270,25 @@ pub trait CapabilityInquiryMessage {
 pub enum AuthorityLevel {
     /// Reserved for future use.
     ReservedUpper = 0x70,
+
     /// Owner of many devices, eg a PC or router
     NodeServer = 0x60,
+
+    /// TODO
     Gateway = 0x50,
+
+    /// A MIDI device that translates between protocols.
     Translator = 0x40,
+
+    /// A distinct MIDI endpoint.
     Endpoint = 0x30,
+
     /// Processors like arpeggiators, sequencers, etc
     EventProcessor = 0x20,
+
+    /// TODO
     Transport = 0x10,
+
     /// Reserved for future use
     ReservedLower = 0x00,
 }
