@@ -1,7 +1,7 @@
 [package]
 name = "midi2"
 version = "0.1.0"
-authors = ["Mike Hilgendorf <mike@hilgendorf.audio>"]
+authors = ["Mike Hilgendorf <mike@hilgendorf.audio>", "Lukas Navickas <lukas.navickas@icloud.com>"]
 edition = "2018"
 license = "MIT"
 description = "Types and helpers for building MIDI 2 capable software"
