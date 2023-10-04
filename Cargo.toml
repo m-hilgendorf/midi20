@@ -1,13 +1,16 @@
 [package]
-name = "midi2"
+name = "midi20"
 version = "0.1.0"
-authors = ["Mike Hilgendorf <mike@hilgendorf.audio>", "Lukas Navickas <lukas.navickas@icloud.com>"]
+authors = [
+  "Mike Hilgendorf <mike@hilgendorf.audio>",
+  "Lukas Navickas <lukas.navickas@icloud.com>"
+]
 edition = "2018"
 license = "MIT"
-description = "Types and helpers for building MIDI 2 capable software"
+description = "Types and helpers for building MIDI 2.0 capable software."
 
 [dependencies]
 
 [features]
-default = ["no-std"]
+default = []
 no-std = []
