@@ -8,7 +8,7 @@ authors = [
 edition = "2018"
 license = "MIT"
 description = "Types and helpers for building MIDI 2.0 capable software."
-repository = "github.com:m-hilgendorf/midi20"
+repository = "https://github.com:m-hilgendorf/midi20"
 
 [dependencies]
 
