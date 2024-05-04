@@ -165,7 +165,6 @@ impl From<FlexStatus> for u16 {
     }
 }
 
-///
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
 pub enum FlexSetupAndPerformance {
     SetTempo,
