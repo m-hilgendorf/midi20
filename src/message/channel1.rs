@@ -3,7 +3,7 @@ use core::convert::TryInto;
 use core::ops::Deref;
 
 use crate::message::Message;
-use crate::packet::{MessageType, Packet32};
+use crate::packet::{MessageType, Packet, Packet32};
 
 /// MIDI 1.0 Channel Voice Messages.
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
@@ -66,25 +66,96 @@ impl LegacyChannelVoice {
     }
 
     /// Program change value data.
-    pub fn program_change(&self) -> u8 {
+    pub fn program_change_value(&self) -> u8 {
         self.data()[1]
     }
 
     /// Pitch bend value data.
-    pub fn pitch_bend(&self) -> u16 {
+    pub fn pitch_bend_value(&self) -> u16 {
         let msb = (self.data()[1] as u16) << 7;
         let lsb = self.data()[2] as u16;
         msb | lsb
     }
 
     /// Polyphonic key pressure value data.
-    pub fn poly_pressure(&self) -> u8 {
+    pub fn poly_pressure_value(&self) -> u8 {
         self.data()[2]
     }
 
     /// Channel key pressure value data.
-    pub fn channel_pressure(&self) -> u8 {
+    pub fn channel_pressure_value(&self) -> u8 {
         self.data()[1]
+    }
+
+    /// Builder function for adding a channel.
+    pub fn with_channel(mut self, channel: u8) -> Self {
+        debug_assert!(channel < 16, "Channels must be in the range [0, 15].");
+        // 0x30xk_dddd
+        let channel = (channel as u32) << 24;
+        self.0[0] = (self.0[0] & 0xfff0_0000) | channel;
+        self
+    }
+
+    /// Create a new note off message.
+    pub fn note_off(note: u8, velocity: u8) -> Self {
+        debug_assert!(note < 128, "Note numbers must be in the range [0, 127].");
+        debug_assert!(velocity < 128, "Velocity must be in the range [0, 127].");
+        Self(Packet([0x2080_0000
+            | (note as u32) << 8
+            | (velocity as u32)]))
+    }
+
+    /// Create a new note off message.
+    pub fn note_on(note: u8, velocity: u8) -> Self {
+        debug_assert!(note < 128, "Note numbers must be in the range [0, 127].");
+        debug_assert!(velocity < 128, "Velocity must be in the range [0, 127].");
+        Self(Packet([0x2090_0000
+            | (note as u32) << 8
+            | (velocity as u32)]))
+    }
+
+    /// Create a new polyphonic key pressure message.
+    pub fn poly_pressure(note: u8, pressure: u8) -> Self {
+        debug_assert!(note < 128, "Note numbers must be in the range [0, 127].");
+        debug_assert!(pressure < 128, "Pressure must be in the range [0, 127].");
+        Self(Packet([0x20a0_0000
+            | (note as u32) << 8
+            | (pressure as u32)]))
+    }
+
+    /// Create a new control change (CC) message.
+    pub fn control_change(index: u8, value: u8) -> Self {
+        debug_assert!(
+            index < 128,
+            "Control indices must be in the range [0, 127]."
+        );
+        debug_assert!(value < 128, "Control values must be in the range [0, 127].");
+        Self(Packet([0x20b0_0000 | (index as u32) << 8 | (value as u32)]))
+    }
+
+    /// Create a program change message.
+    pub fn program_change(note: u8, velocity: u8) -> Self {
+        debug_assert!(note < 128, "Program change must be in the range [0, 127].");
+        debug_assert!(velocity < 128, "Velocity must be in the range [0, 127].");
+        Self(Packet([0x20c0_0000
+            | (note as u32) << 8
+            | (velocity as u32)]))
+    }
+
+    /// Create a new channel pressure message.
+    pub fn channel_pressure(value: u8) -> Self {
+        debug_assert!(
+            value < 128,
+            "Channel pressure must be in the range [0, 127]."
+        );
+        Self(Packet([0x20d0_0000 | (value as u32) << 8]))
+    }
+
+    /// Create a pitch bend message.
+    pub fn pitch_bend(value: u16) -> Self {
+        debug_assert!(value < (1 << 14), "Pitch bend out of range.");
+        let value = u32::from_be_bytes([0, 0, (value >> 7) as u8, ((value << 7) >> 7) as u8]);
+        Self(Packet([0x20e0_0000 | value]))
     }
 }
 
