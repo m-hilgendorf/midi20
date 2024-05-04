@@ -35,9 +35,7 @@ pub fn decode(buf: &[u8]) -> Option<(usize, Data)> {
             let packet = Packet::<2>([word0, word1]);
             let data = match message_type {
                 0x3 => Data::Data64(data::Data64::from_packet_unchecked(packet)),
-                0x4 => Data::ChannelVoice(
-                    channel2::ChannelVoice::from_packet_unchecked(packet),
-                ),
+                0x4 => Data::ChannelVoice(channel2::ChannelVoice::from_packet_unchecked(packet)),
                 _ => Data::Reserved64(packet),
             };
             Some((8, data))
@@ -56,9 +54,7 @@ pub fn decode(buf: &[u8]) -> Option<(usize, Data)> {
             let data = match message_type {
                 0x5 => Data::Data128(data::Data128::from_packet_unchecked(packet)),
                 0xd => Data::Flex(flex::Flex::from_packet_unchecked(packet)),
-                0xf => {
-                    Data::UmpStream(ump_stream::UmpStream::from_packet_unchecked(packet))
-                }
+                0xf => Data::UmpStream(ump_stream::UmpStream::from_packet_unchecked(packet)),
                 _ => Data::Reserved128(packet),
             };
             Some((16, data))
