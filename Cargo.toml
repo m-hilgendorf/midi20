@@ -1,6 +1,6 @@
 [package]
 name = "midi20"
-version = "0.1.1"
+version = "0.2.0"
 authors = [
   "Mike Hilgendorf <mike@hilgendorf.audio>",
   "Lukas Navickas <lukas.navickas@icloud.com>"
