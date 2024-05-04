@@ -13,7 +13,7 @@ pub fn encode(message: impl Message, buf: &mut [u8]) -> usize {
 }
 
 /// Read a message from an output buffer.
-pub fn decode(buf: &[u8]) -> Option<(usize, MidiMessageData)> {
+pub fn decode(buf: &[u8]) -> Option<(usize, Data)> {
     let mut chunks = buf.chunks_exact(core::mem::size_of::<u32>());
     let word0 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
     let message_type = word0 >> 28;
@@ -21,12 +21,12 @@ pub fn decode(buf: &[u8]) -> Option<(usize, MidiMessageData)> {
         0x0 | 0x1 | 0x2 | 0x6 | 0x7 => {
             let packet = Packet::<1>([word0]);
             let data = match message_type {
-                0x0 => MidiMessageData::Utility(utility::Utility::from_packet_unchecked(packet)),
-                0x1 => MidiMessageData::System(system::System::from_packet_unchecked(packet)),
-                0x2 => MidiMessageData::LegacyChannelVoice(
+                0x0 => Data::Utility(utility::Utility::from_packet_unchecked(packet)),
+                0x1 => Data::System(system::System::from_packet_unchecked(packet)),
+                0x2 => Data::LegacyChannelVoice(
                     channel1::LegacyChannelVoice::from_packet_unchecked(packet),
                 ),
-                _ => MidiMessageData::Reserved32(packet),
+                _ => Data::Reserved32(packet),
             };
             Some((4, data))
         }
@@ -34,11 +34,11 @@ pub fn decode(buf: &[u8]) -> Option<(usize, MidiMessageData)> {
             let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
             let packet = Packet::<2>([word0, word1]);
             let data = match message_type {
-                0x3 => MidiMessageData::Data64(data::Data64::from_packet_unchecked(packet)),
-                0x4 => MidiMessageData::ChannelVoice(
+                0x3 => Data::Data64(data::Data64::from_packet_unchecked(packet)),
+                0x4 => Data::ChannelVoice(
                     channel2::ChannelVoice::from_packet_unchecked(packet),
                 ),
-                _ => MidiMessageData::Reserved64(packet),
+                _ => Data::Reserved64(packet),
             };
             Some((8, data))
         }
@@ -46,7 +46,7 @@ pub fn decode(buf: &[u8]) -> Option<(usize, MidiMessageData)> {
             let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
             let word2 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
             let packet = Packet::<3>([word0, word1, word2]);
-            Some((12, MidiMessageData::Reserved96(packet)))
+            Some((12, Data::Reserved96(packet)))
         }
         0x5 | 0xd | 0xe | 0xf => {
             let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
@@ -54,12 +54,12 @@ pub fn decode(buf: &[u8]) -> Option<(usize, MidiMessageData)> {
             let word3 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
             let packet = Packet::<4>([word0, word1, word2, word3]);
             let data = match message_type {
-                0x5 => MidiMessageData::Data128(data::Data128::from_packet_unchecked(packet)),
-                0xd => MidiMessageData::Flex(flex::Flex::from_packet_unchecked(packet)),
+                0x5 => Data::Data128(data::Data128::from_packet_unchecked(packet)),
+                0xd => Data::Flex(flex::Flex::from_packet_unchecked(packet)),
                 0xf => {
-                    MidiMessageData::UmpStream(ump_stream::UmpStream::from_packet_unchecked(packet))
+                    Data::UmpStream(ump_stream::UmpStream::from_packet_unchecked(packet))
                 }
-                _ => MidiMessageData::Reserved128(packet),
+                _ => Data::Reserved128(packet),
             };
             Some((16, data))
         }

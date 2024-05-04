@@ -39,7 +39,7 @@ where
 
 /// Parent type of each MIDI Message.
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
-pub enum MidiMessageData {
+pub enum Data {
     /// Utility types (Jitter reduction, Clock, No-op).
     Utility(utility::Utility),
 
@@ -75,4 +75,24 @@ pub enum MidiMessageData {
 
     /// Reserved.
     Reserved128(Packet128),
+}
+
+impl Data {
+    /// The size of this message's packet in bytes.
+    pub fn packet_size(&self) -> usize {
+        match self {
+            Self::Utility(d) => std::mem::size_of_val(d),
+            Self::System(d) => std::mem::size_of_val(d),
+            Self::LegacyChannelVoice(d) => std::mem::size_of_val(d),
+            Self::ChannelVoice(d) => std::mem::size_of_val(d),
+            Self::Flex(d) => std::mem::size_of_val(d),
+            Self::UmpStream(d) => std::mem::size_of_val(d),
+            Self::Data64(d) => std::mem::size_of_val(d),
+            Self::Data128(d) => std::mem::size_of_val(d),
+            Self::Reserved32(d) => std::mem::size_of_val(d),
+            Self::Reserved64(d) => std::mem::size_of_val(d),
+            Self::Reserved96(d) => std::mem::size_of_val(d),
+            Self::Reserved128(d) => std::mem::size_of_val(d),
+        }
+    }
 }
