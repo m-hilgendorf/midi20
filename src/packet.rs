@@ -1,5 +1,5 @@
 //! Implements serializing and deserializing MIDI messages as universal midi packets (UMP)
-use core::ops::Deref;
+use core::ops::{Deref, DerefMut};
 
 /// A universal midi packet (UMP) is a 32, 64, 96, or 128 bit slice of serialized
 /// MIDI data that is parsed into midi messages, or serialized from them.
@@ -11,6 +11,12 @@ impl<const N: usize> Deref for Packet<N> {
     type Target = [u32];
     fn deref(&self) -> &'_ Self::Target {
         &self.0
+    }
+}
+
+impl<const N: usize> DerefMut for Packet<N> {
+    fn deref_mut(&mut self) -> &'_ mut Self::Target {
+        &mut self.0
     }
 }
 
