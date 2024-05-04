@@ -197,9 +197,9 @@ pub struct DeviceIdentityNotification {
     pub version_id: u8,
 }
 
-pub struct EndpointNameIdentification([u8; 14]);
+pub struct EndpointNameIdentification(pub [u8; 14]);
 
-pub struct ProductInstanceIdNotification([u8; 14]);
+pub struct ProductInstanceIdNotification(pub [u8; 14]);
 
 pub struct StreamConfigurationRequest {
     pub protocol: u8,
