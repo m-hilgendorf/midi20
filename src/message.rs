@@ -3,7 +3,7 @@
 //! MIDI 2.0 Messages form a mostly flat abstract syntax tree. MIDI 1.0 types are represented by
 //! the [LegacyChannelVoice] enum.
 use crate::packet::*;
-use core::ops::Deref;
+use std::{convert::TryInto, mem, ops::Deref, slice};
 
 pub mod channel1;
 pub mod channel2;
@@ -78,21 +78,109 @@ pub enum Data {
 }
 
 impl Data {
+    /// Parse a chunk of bytes into a message.
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        let mut chunks = bytes.chunks_exact(mem::size_of::<u32>());
+        let word0 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
+        let message_type = word0 >> 28;
+        match message_type {
+            0x0 | 0x1 | 0x2 | 0x6 | 0x7 => {
+                let packet = Packet::<1>([word0]);
+                let data = match message_type {
+                    0x0 => Data::Utility(utility::Utility::from_packet_unchecked(packet)),
+                    0x1 => Data::System(system::System::from_packet_unchecked(packet)),
+                    0x2 => Data::LegacyChannelVoice(
+                        channel1::LegacyChannelVoice::from_packet_unchecked(packet),
+                    ),
+                    _ => Data::Reserved32(packet),
+                };
+                Some(data)
+            }
+            0x3 | 0x4 | 0x8 | 0x9 | 0xa => {
+                let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
+                let packet = Packet::<2>([word0, word1]);
+                let data = match message_type {
+                    0x3 => Data::Data64(data::Data64::from_packet_unchecked(packet)),
+                    0x4 => {
+                        Data::ChannelVoice(channel2::ChannelVoice::from_packet_unchecked(packet))
+                    }
+                    _ => Data::Reserved64(packet),
+                };
+                Some(data)
+            }
+            0xb | 0xc => {
+                let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
+                let word2 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
+                let packet = Packet::<3>([word0, word1, word2]);
+                Some(Data::Reserved96(packet))
+            }
+            0x5 | 0xd | 0xe | 0xf => {
+                let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
+                let word2 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
+                let word3 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
+                let packet = Packet::<4>([word0, word1, word2, word3]);
+                let data = match message_type {
+                    0x5 => Data::Data128(data::Data128::from_packet_unchecked(packet)),
+                    0xd => Data::Flex(flex::Flex::from_packet_unchecked(packet)),
+                    0xf => Data::UmpStream(ump_stream::UmpStream::from_packet_unchecked(packet)),
+                    _ => Data::Reserved128(packet),
+                };
+                Some(data)
+            }
+            _ => unreachable!("Invalid message type."),
+        }
+    }
+
+    /// Get the raw bytes of the message.
+    pub fn as_bytes(&self) -> &[u8] {
+        let words: &[u32] = match self {
+            Self::Utility(msg) => &msg.0 .0,
+            Self::System(msg) => &msg.0 .0,
+            Self::LegacyChannelVoice(msg) => &msg.0 .0,
+            Self::ChannelVoice(msg) => &msg.0 .0,
+            Self::Flex(msg) => &msg.0 .0,
+            Self::UmpStream(msg) => &msg.0 .0,
+            Self::Data64(msg) => &msg.0 .0,
+            Self::Data128(msg) => &msg.0 .0,
+            Self::Reserved32(msg) => &msg.0,
+            Self::Reserved64(msg) => &msg.0,
+            Self::Reserved96(msg) => &msg.0,
+            Self::Reserved128(msg) => &msg.0,
+        };
+        let data = words.as_ptr().cast();
+        let len = words.len() * mem::size_of::<u32>();
+        unsafe { slice::from_raw_parts(data, len) }
+    }
+
     /// The size of this message's packet in bytes.
     pub fn packet_size(&self) -> usize {
+        self.as_bytes().len()
+    }
+
+    /// Get the group of the message.
+    pub fn group(&self) -> u8 {
         match self {
-            Self::Utility(d) => std::mem::size_of_val(d),
-            Self::System(d) => std::mem::size_of_val(d),
-            Self::LegacyChannelVoice(d) => std::mem::size_of_val(d),
-            Self::ChannelVoice(d) => std::mem::size_of_val(d),
-            Self::Flex(d) => std::mem::size_of_val(d),
-            Self::UmpStream(d) => std::mem::size_of_val(d),
-            Self::Data64(d) => std::mem::size_of_val(d),
-            Self::Data128(d) => std::mem::size_of_val(d),
-            Self::Reserved32(d) => std::mem::size_of_val(d),
-            Self::Reserved64(d) => std::mem::size_of_val(d),
-            Self::Reserved96(d) => std::mem::size_of_val(d),
-            Self::Reserved128(d) => std::mem::size_of_val(d),
+            Self::Utility(msg) => msg.group(),
+            Self::System(msg) => msg.group(),
+            Self::LegacyChannelVoice(msg) => msg.group(),
+            Self::ChannelVoice(msg) => msg.group(),
+            Self::Flex(msg) => msg.group(),
+            Self::UmpStream(msg) => msg.group(),
+            Self::Data64(msg) => msg.group(),
+            Self::Data128(msg) => msg.group(),
+            Self::Reserved32(msg) => msg.group(),
+            Self::Reserved64(msg) => msg.group(),
+            Self::Reserved96(msg) => msg.group(),
+            Self::Reserved128(msg) => msg.group(),
+        }
+    }
+
+    /// Get the channel of the message, if it exists.
+    pub fn channel(&self) -> Option<u8> {
+        match self {
+            Self::LegacyChannelVoice(msg) => Some(msg.channel()),
+            Self::ChannelVoice(msg) => Some(msg.channel()),
+            _ => None,
         }
     }
 }
