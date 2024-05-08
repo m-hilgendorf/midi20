@@ -7,7 +7,7 @@ use crate::packet::{MessageType, Packet32};
 
 /// System common messages, for time code, song position, song select, and tune request
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
-pub struct System(Packet32);
+pub struct System(pub(crate) Packet32);
 
 /// Represents the status byte of a [System] message.
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]

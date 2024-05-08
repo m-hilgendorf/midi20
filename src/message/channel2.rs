@@ -6,7 +6,7 @@ use crate::packet::{MessageType, Packet, Packet64};
 
 /// MIDI 2.0 channel voice messages
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
-pub struct ChannelVoice(Packet64);
+pub struct ChannelVoice(pub(crate) Packet64);
 
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -47,6 +47,11 @@ impl ChannelVoice {
         Self(ump)
     }
 
+    /// The destination channel for this message.
+    pub fn channel(&self) -> u8 {
+        ((self.0[0] >> 16) & 0xf) as u8
+    }
+
     /// The note number data, for relevent message statuses.
     pub fn note_number(&self) -> u8 {
         self.data().0
@@ -83,12 +88,12 @@ impl ChannelVoice {
     }
 
     /// Registered per-note control index data.
-    pub fn nrpn_index(&self) -> u8 {
+    pub fn arpn_index(&self) -> u8 {
         self.data().1
     }
 
     /// Registered per-note control value data.
-    pub fn nrpn_data(&self) -> u32 {
+    pub fn arpn_data(&self) -> u32 {
         self.data().2
     }
 
@@ -108,7 +113,6 @@ impl ChannelVoice {
     }
 
     /// Program change value data.
-    // TODO: more specific type.
     pub fn program_change_value(&self) -> u8 {
         todo!()
     }

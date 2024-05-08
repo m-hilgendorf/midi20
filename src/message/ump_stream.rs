@@ -5,7 +5,7 @@ use crate::message::{data::DataFormat, Message};
 use crate::packet::{MessageType, Packet128};
 
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
-pub struct UmpStream(Packet128);
+pub struct UmpStream(pub(crate) Packet128);
 
 impl Deref for UmpStream {
     type Target = [u32];

@@ -7,7 +7,7 @@ use crate::packet::{MessageType, Packet, Packet32};
 
 /// MIDI 1.0 Channel Voice Messages.
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
-pub struct LegacyChannelVoice(Packet32);
+pub struct LegacyChannelVoice(pub(crate) Packet32);
 
 /// Indicates the status of a legacy (MIDI 1.x) channel voice message.
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]

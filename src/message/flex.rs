@@ -7,7 +7,7 @@ use crate::packet::{MessageType, Packet128};
 
 /// Flex data messages: real time messages with limited variability of size.
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
-pub struct Flex(Packet128);
+pub struct Flex(pub(crate) Packet128);
 
 impl Deref for Flex {
     type Target = [u32];

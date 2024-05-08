@@ -7,6 +7,12 @@ use crate::message::Message;
 use crate::packet::{MessageType, Packet128, Packet64};
 
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
+pub struct Data64(pub(crate) Packet64);
+
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
+pub struct Data128(pub(crate) Packet128);
+
+#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
 pub enum DataStatus {
     SinglePacket = 0x0,
     Start = 0x1,
@@ -15,9 +21,6 @@ pub enum DataStatus {
     MixedDataSetHeader = 0x8,
     MixedDataSetPayload = 0x9,
 }
-
-#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
-pub struct Data64(Packet64);
 
 impl Data64 {
     pub(crate) fn from_packet_unchecked(ump: Packet64) -> Self {
@@ -63,9 +66,6 @@ impl Message for Data64 {
         }
     }
 }
-
-#[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
-pub struct Data128(Packet128);
 
 impl Deref for Data128 {
     type Target = [u32];
