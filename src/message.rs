@@ -77,11 +77,29 @@ pub enum Data {
     Reserved128(Packet128),
 }
 
+impl AsRef<[u32]> for Data {
+    fn as_ref(&self) -> &[u32] {
+        match self {
+            Self::Utility(msg) => msg.as_ref(),
+            Self::System(msg) => msg.as_ref(),
+            Self::LegacyChannelVoice(msg) => msg.as_ref(),
+            Self::ChannelVoice(msg) => msg.as_ref(),
+            Self::Flex(msg) => msg.as_ref(),
+            Self::UmpStream(msg) => msg.as_ref(),
+            Self::Data64(msg) => msg.as_ref(),
+            Self::Data128(msg) => msg.as_ref(),
+            Self::Reserved32(msg) => msg.as_ref(),
+            Self::Reserved64(msg) => msg.as_ref(),
+            Self::Reserved96(msg) => msg.as_ref(),
+            Self::Reserved128(msg) => msg.as_ref(),
+        }
+    }
+}
+
 impl Data {
-    /// Parse a chunk of bytes into a message.
-    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
-        let mut chunks = bytes.chunks_exact(mem::size_of::<u32>());
-        let word0 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
+    /// Parse an iterator of u32 into a message.
+    pub fn from_words(mut words: impl Iterator<Item = u32>) -> Option<Self> {
+        let word0 = words.next()?;
         let message_type = word0 >> 28;
         match message_type {
             0x0 | 0x1 | 0x2 | 0x6 | 0x7 => {
@@ -97,7 +115,7 @@ impl Data {
                 Some(data)
             }
             0x3 | 0x4 | 0x8 | 0x9 | 0xa => {
-                let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
+                let word1 = words.next()?;
                 let packet = Packet::<2>([word0, word1]);
                 let data = match message_type {
                     0x3 => Data::Data64(data::Data64::from_packet_unchecked(packet)),
@@ -109,15 +127,15 @@ impl Data {
                 Some(data)
             }
             0xb | 0xc => {
-                let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
-                let word2 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
+                let word1 = words.next()?;
+                let word2 = words.next()?;
                 let packet = Packet::<3>([word0, word1, word2]);
                 Some(Data::Reserved96(packet))
             }
             0x5 | 0xd | 0xe | 0xf => {
-                let word1 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
-                let word2 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
-                let word3 = u32::from_ne_bytes(chunks.next()?.try_into().ok()?);
+                let word1 = words.next()?;
+                let word2 = words.next()?;
+                let word3 = words.next()?;
                 let packet = Packet::<4>([word0, word1, word2, word3]);
                 let data = match message_type {
                     0x5 => Data::Data128(data::Data128::from_packet_unchecked(packet)),
@@ -131,22 +149,17 @@ impl Data {
         }
     }
 
+    /// Parse a chunk of bytes into a message.
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        let words = bytes
+            .chunks_exact(mem::size_of::<u32>())
+            .map(|chunk| u32::from_ne_bytes(chunk.try_into().unwrap()));
+        Self::from_words(words)
+    }
+
     /// Get the raw bytes of the message.
     pub fn as_bytes(&self) -> &[u8] {
-        let words: &[u32] = match self {
-            Self::Utility(msg) => &msg.0 .0,
-            Self::System(msg) => &msg.0 .0,
-            Self::LegacyChannelVoice(msg) => &msg.0 .0,
-            Self::ChannelVoice(msg) => &msg.0 .0,
-            Self::Flex(msg) => &msg.0 .0,
-            Self::UmpStream(msg) => &msg.0 .0,
-            Self::Data64(msg) => &msg.0 .0,
-            Self::Data128(msg) => &msg.0 .0,
-            Self::Reserved32(msg) => &msg.0,
-            Self::Reserved64(msg) => &msg.0,
-            Self::Reserved96(msg) => &msg.0,
-            Self::Reserved128(msg) => &msg.0,
-        };
+        let words: &[u32] = self.as_ref();
         let data = words.as_ptr().cast();
         let len = words.len() * mem::size_of::<u32>();
         unsafe { slice::from_raw_parts(data, len) }
