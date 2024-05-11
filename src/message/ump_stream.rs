@@ -31,16 +31,16 @@ impl Message for UmpStream {
     }
 
     fn status(&self) -> Self::Status {
-        let bytes = self.0[0].to_ne_bytes();
+        let bytes = self.0[0].to_be_bytes();
         bytes[1].into()
     }
 
     fn data(&self) -> Self::Data {
         let bytes = [
-            self.0[0].to_ne_bytes(),
-            self.0[1].to_ne_bytes(),
-            self.0[2].to_ne_bytes(),
-            self.0[3].to_ne_bytes(),
+            self.0[0].to_be_bytes(),
+            self.0[1].to_be_bytes(),
+            self.0[2].to_be_bytes(),
+            self.0[3].to_be_bytes(),
         ];
         [
             bytes[0][1],
@@ -67,7 +67,7 @@ impl UmpStream {
     }
 
     pub fn format(&self) -> DataFormat {
-        let bytes = self.0[0].to_ne_bytes();
+        let bytes = self.0[0].to_be_bytes();
         (bytes[0] & 0xF).into()
     }
 }

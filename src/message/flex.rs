@@ -46,13 +46,13 @@ impl Flex {
     /// Determines the role of each UMP within a Flex Data Message.
     pub fn format(&self) -> DataFormat {
         let dword = self.0[0];
-        let byte = dword.to_ne_bytes()[1];
+        let byte = dword.to_be_bytes()[1];
         (byte >> 6).into()
     }
 
     pub fn address(&self) -> FlexAddress {
         let dword = self.0[0];
-        let byte = dword.to_ne_bytes()[1];
+        let byte = dword.to_be_bytes()[1];
         byte.into()
     }
 
@@ -73,7 +73,7 @@ impl Flex {
 
     pub fn key_signature(&self) -> FlexKeySignature {
         let dword = self.data()[0];
-        let byte = dword.to_ne_bytes()[0];
+        let byte = dword.to_be_bytes()[0];
         FlexKeySignature(byte)
     }
 
@@ -358,7 +358,7 @@ pub struct FlexTimeSignature {
 
 impl From<u32> for FlexTimeSignature {
     fn from(value: u32) -> Self {
-        let bytes = value.to_ne_bytes();
+        let bytes = value.to_be_bytes();
         Self {
             numerator: bytes[0],
             denominator: bytes[1],
@@ -392,7 +392,7 @@ pub struct FlexMetronome {
 
 impl From<[u32; 2]> for FlexMetronome {
     fn from(value: [u32; 2]) -> Self {
-        let bytes = [value[0].to_ne_bytes(), value[1].to_ne_bytes()];
+        let bytes = [value[0].to_be_bytes(), value[1].to_be_bytes()];
 
         FlexMetronome {
             clocks_per_primary_click: bytes[0][0],
@@ -487,9 +487,9 @@ pub struct FlexChordName {
 impl From<[u32; 3]> for FlexChordName {
     fn from(value: [u32; 3]) -> Self {
         let bytes = [
-            value[0].to_ne_bytes(),
-            value[1].to_ne_bytes(),
-            value[2].to_ne_bytes(),
+            value[0].to_be_bytes(),
+            value[1].to_be_bytes(),
+            value[2].to_be_bytes(),
         ];
 
         FlexChordName {

@@ -42,7 +42,7 @@ impl LegacyChannelVoice {
 
     /// The destination channel for this message.
     pub fn channel(&self) -> u8 {
-        self.data()[0]
+        self.data()[0] & 0x0f
     }
 
     /// Note number data for NoteOn, NoteOff.
@@ -75,6 +75,11 @@ impl LegacyChannelVoice {
         let msb = (self.data()[1] as u16) << 7;
         let lsb = self.data()[2] as u16;
         msb | lsb
+    }
+
+    /// Polyphonic key pressure note
+    pub fn poly_pressure_note(&self) -> u8 {
+        self.data()[1]
     }
 
     /// Polyphonic key pressure value data.

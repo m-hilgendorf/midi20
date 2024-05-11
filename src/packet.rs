@@ -23,18 +23,18 @@ impl<const N: usize> DerefMut for Packet<N> {
 impl<const N: usize> Packet<N> {
     /// Return the message type byte of the packet.
     pub fn message_type(&self) -> u8 {
-        self.0[0].to_ne_bytes()[0] >> 4
+        self.0[0].to_be_bytes()[0] >> 4
     }
 
     /// Return the group byte of the packet.
     pub fn group(&self) -> u8 {
-        self.0[0].to_ne_bytes()[0] & 0x0f
+        self.0[0].to_be_bytes()[0] & 0x0f
     }
 
     /// Return the status byte of the packet.
     pub fn status(&self) -> u8 {
         // Lead
-        self.0[0].to_ne_bytes()[1]
+        self.0[0].to_be_bytes()[1]
     }
 }
 
