@@ -1,6 +1,7 @@
 //! Legacy (MIDI 1.x) channel voice messages.
 use core::convert::TryInto;
 use core::ops::Deref;
+use std::fmt;
 
 use crate::message::Message;
 use crate::packet::{MessageType, Packet, Packet32};
@@ -197,11 +198,52 @@ impl Message for LegacyChannelVoice {
             0xc => Self::Status::ProgramChange,
             0xd => Self::Status::ChannelPressure,
             0xe => Self::Status::PitchBend,
-            _ => unreachable!("Invalid status byte for legacy channel voice message."),
+            stat => unreachable!(
+                "invalid status byte for legacy channel voice message: {:x}",
+                stat
+            ),
         }
     }
 
     fn data(&self) -> Self::Data {
-        (&self.0[0].to_ne_bytes()[1..=3]).try_into().unwrap()
+        (&self.0[0].to_be_bytes()[1..=3]).try_into().unwrap()
+    }
+}
+
+impl fmt::Display for LegacyChannelVoice {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let channel = self.channel();
+        match self.status() {
+            LegacyChannelVoiceStatus::ChannelPressure => {
+                write!(f, "ch {channel} pressure {}", self.channel_pressure_value())
+            }
+            LegacyChannelVoiceStatus::ControlChange => {
+                write!(f, "ch {channel} cc {}:{}", self.cc_index(), self.cc_value())
+            }
+            LegacyChannelVoiceStatus::NoteOff => write!(
+                f,
+                "ch {channel} note off {}:{}",
+                self.note_number(),
+                self.velocity()
+            ),
+            LegacyChannelVoiceStatus::NoteOn => write!(
+                f,
+                "ch {channel} note on {}:{}",
+                self.note_number(),
+                self.velocity()
+            ),
+            LegacyChannelVoiceStatus::PitchBend => {
+                write!(f, "ch {channel} pitch bnd {}", self.pitch_bend_value())
+            }
+            LegacyChannelVoiceStatus::PolyPressure => write!(
+                f,
+                "ch {channel} poly pressure {}:{}",
+                self.poly_pressure_note(),
+                self.poly_pressure_value()
+            ),
+            LegacyChannelVoiceStatus::ProgramChange => {
+                write!(f, "ch {channel} prog chng {}", self.program_change_value())
+            }
+        }
     }
 }

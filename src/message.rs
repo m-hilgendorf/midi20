@@ -3,7 +3,7 @@
 //! MIDI 2.0 Messages form a mostly flat abstract syntax tree. MIDI 1.0 types are represented by
 //! the [LegacyChannelVoice] enum.
 use crate::packet::*;
-use std::{convert::TryInto, mem, ops::Deref, slice};
+use std::{convert::TryInto, fmt, mem, ops::Deref, slice};
 
 pub mod channel1;
 pub mod channel2;
@@ -194,6 +194,47 @@ impl Data {
             Self::LegacyChannelVoice(msg) => Some(msg.channel()),
             Self::ChannelVoice(msg) => Some(msg.channel()),
             _ => None,
+        }
+    }
+}
+
+/// An iterator over messages in a buffer of u32.
+pub struct Iter<'a> {
+    buffer: &'a [u32],
+}
+
+impl<'a> Iter<'a> {
+    /// Create a new iterator over a buffer of u32.
+    pub fn new(buffer: &'a [u32]) -> Self {
+        Self { buffer }
+    }
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = Data;
+    fn next(&mut self) -> Option<Self::Item> {
+        let msg = Data::from_words(self.buffer.iter().copied())?;
+        self.buffer = &self.buffer[msg.packet_size()..];
+        Some(msg)
+    }
+}
+
+impl fmt::Display for Data {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "(gr {} ", self.group())?;
+        match self {
+            Self::Utility(msg) => write!(f, "util {})", msg.0),
+            Self::System(msg) => write!(f, "sys {})", msg.0),
+            Self::LegacyChannelVoice(msg) => write!(f, "cv1 {msg})"),
+            Self::ChannelVoice(msg) => write!(f, "cv2 {})", msg.0),
+            Self::Flex(msg) => write!(f, "flex {})", msg.0),
+            Self::UmpStream(msg) => write!(f, "stream {})", msg.0),
+            Self::Data64(msg) => write!(f, "data {})", msg.0),
+            Self::Data128(msg) => write!(f, "data {})", msg.0),
+            Self::Reserved32(msg) => write!(f, "res {msg})"),
+            Self::Reserved64(msg) => write!(f, "res {msg})"),
+            Self::Reserved96(msg) => write!(f, "res {msg})"),
+            Self::Reserved128(msg) => write!(f, "res {msg})"),
         }
     }
 }

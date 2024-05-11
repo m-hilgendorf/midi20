@@ -1,5 +1,6 @@
 //! Implements serializing and deserializing MIDI messages as universal midi packets (UMP)
 use core::ops::{Deref, DerefMut};
+use std::fmt;
 
 /// A universal midi packet (UMP) is a 32, 64, 96, or 128 bit slice of serialized
 /// MIDI data that is parsed into midi messages, or serialized from them.
@@ -94,5 +95,17 @@ impl From<u8> for MessageType {
             15 => MessageType::UmpStream,
             _ => unreachable!("Invalid value for message type."),
         }
+    }
+}
+
+impl<const N: usize> fmt::Display for Packet<N> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for i in 0..N {
+            write!(f, "{:8x}", self.0[i])?;
+            if i != N - 1 {
+                write!(f, " ")?;
+            }
+        }
+        Ok(())
     }
 }
