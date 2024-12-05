@@ -1,10 +1,11 @@
 //! Legacy (MIDI 1.x) channel voice messages.
 use core::convert::TryInto;
 use core::ops::Deref;
-use std::fmt;
 
 use crate::message::Message;
 use crate::packet::{MessageType, Packet, Packet32};
+
+use super::channel2::ChannelVoice;
 
 /// MIDI 1.0 Channel Voice Messages.
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
@@ -210,8 +211,9 @@ impl Message for LegacyChannelVoice {
     }
 }
 
-impl fmt::Display for LegacyChannelVoice {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+#[cfg(not(feature = "no-std"))]
+impl std::fmt::Display for LegacyChannelVoice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let channel = self.channel();
         match self.status() {
             LegacyChannelVoiceStatus::ChannelPressure => {
@@ -245,5 +247,54 @@ impl fmt::Display for LegacyChannelVoice {
                 write!(f, "ch {channel} prog chng {}", self.program_change_value())
             }
         }
+    }
+}
+
+impl From<LegacyChannelVoice> for ChannelVoice {
+    fn from(value: LegacyChannelVoice) -> Self {
+        #[inline(always)]
+        fn convert_velocity(v: u8) -> u16 {
+            (v as u16) << 8
+        }
+
+        #[inline(always)]
+        fn convert_pressure(v: u8) -> u32 {
+            (v as u32) << 24
+        }
+
+        #[inline(always)]
+        fn convert_pitch_bend(v: u16) -> u32 {
+            (v as u32) << 14
+        }
+
+        let message = match value.status() {
+            LegacyChannelVoiceStatus::NoteOff => ChannelVoice::note_off(
+                value.note_number(),
+                convert_velocity(value.velocity()),
+                None,
+            ),
+            LegacyChannelVoiceStatus::NoteOn => ChannelVoice::note_on(
+                value.note_number(),
+                convert_velocity(value.velocity()),
+                None,
+            ),
+            LegacyChannelVoiceStatus::PolyPressure => ChannelVoice::poly_pressure(
+                value.poly_pressure_note(),
+                convert_pressure(value.poly_pressure_value()),
+            ),
+            LegacyChannelVoiceStatus::ControlChange => {
+                ChannelVoice::control_change(value.cc_index(), convert_pressure(value.cc_value()))
+            }
+            LegacyChannelVoiceStatus::ChannelPressure => {
+                ChannelVoice::channel_pressure(convert_pressure(value.channel_pressure_value()))
+            }
+            LegacyChannelVoiceStatus::PitchBend => {
+                ChannelVoice::pitch_bend(convert_pitch_bend(value.pitch_bend_value()))
+            }
+            LegacyChannelVoiceStatus::ProgramChange => {
+                ChannelVoice::program_change(0, value.program_change_value(), 0)
+            }
+        };
+        message.with_channel(value.channel())
     }
 }

@@ -1,8 +1,9 @@
 #![allow(missing_docs)]
+use core::convert::TryInto;
 use core::ops::Deref;
 
 use crate::message::{data::DataFormat, Message};
-use crate::packet::{MessageType, Packet128};
+use crate::packet::{MessageType, Packet, Packet128};
 
 #[derive(Copy, Clone, Hash, Debug, Eq, PartialEq)]
 pub struct UmpStream(pub(crate) Packet128);
@@ -16,8 +17,8 @@ impl Deref for UmpStream {
 }
 
 impl Message for UmpStream {
-    type Data = [u8; 14];
-    type Status = UmpStreamStatus;
+    type Data = [u32; 3];
+    type Status = Status;
 
     fn message_type(&self) -> MessageType {
         let msg_type = self.0.message_type().into();
@@ -27,37 +28,16 @@ impl Message for UmpStream {
 
     /// UMP Stream messages are group-less.
     fn group(&self) -> u8 {
+        debug_assert!(false, "ump stream messages have no group");
         0
     }
 
     fn status(&self) -> Self::Status {
-        let bytes = self.0[0].to_be_bytes();
-        bytes[1].into()
+        ((self.0[0] >> 16) as u16).into()
     }
 
     fn data(&self) -> Self::Data {
-        let bytes = [
-            self.0[0].to_be_bytes(),
-            self.0[1].to_be_bytes(),
-            self.0[2].to_be_bytes(),
-            self.0[3].to_be_bytes(),
-        ];
-        [
-            bytes[0][1],
-            bytes[0][0],
-            bytes[1][3],
-            bytes[1][2],
-            bytes[1][1],
-            bytes[1][0],
-            bytes[2][3],
-            bytes[2][2],
-            bytes[2][1],
-            bytes[2][0],
-            bytes[3][3],
-            bytes[3][2],
-            bytes[3][1],
-            bytes[3][0],
-        ]
+        self.0[1..3].try_into().unwrap()
     }
 }
 
@@ -72,7 +52,7 @@ impl UmpStream {
     }
 }
 
-pub enum UmpStreamStatus {
+pub enum Status {
     EndpointDiscovery,
     EndpointInfoNotification,
     DeviceIdentityNotification,
@@ -88,8 +68,8 @@ pub enum UmpStreamStatus {
     Reserved,
 }
 
-impl From<u8> for UmpStreamStatus {
-    fn from(value: u8) -> Self {
+impl From<u16> for Status {
+    fn from(value: u16) -> Self {
         match value {
             0x0 => Self::EndpointDiscovery,
             0x1 => Self::EndpointInfoNotification,
@@ -108,69 +88,73 @@ impl From<u8> for UmpStreamStatus {
     }
 }
 
+impl From<Status> for u8 {
+    fn from(value: Status) -> u8 {
+        match value {
+            Status::EndpointDiscovery => 0x0,
+            Status::EndpointInfoNotification => 0x1,
+            Status::DeviceIdentityNotification => 0x2,
+            Status::EndpointNameNotification => 0x3,
+            Status::ProductInstanceIdNotification => 0x4,
+            Status::StreamConfigurationRequest => 0x5,
+            Status::StreamConfigurationNotification => 0x6,
+            Status::FunctionBlockDiscovery => 0x10,
+            Status::FunctionBlockInfoNotification => 0x11,
+            Status::FunctionBlockNameNotification => 0x12,
+            Status::StartOfClip => 0x20,
+            Status::EndOfClip => 0x21,
+            Status::Reserved => 0x22,
+        }
+    }
+}
+
 impl UmpStream {
-    pub fn endpoint_discovery(&self) -> EndpointDiscovery {
-        EndpointDiscovery {
-            ump_major_version: self.data()[0],
-            ump_minor_version: self.data()[1],
-            filter_bitmap: self.data()[5],
-        }
+    pub fn endpoint_discovery(data: EndpointDiscovery) -> Self {
+        let word0 = u32::from_be_bytes([
+            u8::from(Status::EndpointDiscovery) << 4,
+            0,
+            data.ump_major_version,
+            data.ump_minor_version,
+        ]);
+        let word1 = u32::from_be_bytes([0, 0, 0, data.filter_bitmap]);
+        let word2 = 0;
+        let word3 = 0;
+        Self::from_packet_unchecked(Packet([word0, word1, word2, word3]))
     }
 
-    pub fn endpoint_info_notification(&self) -> EndpointInfoNotification {
-        EndpointInfoNotification {
-            ump_major_version: self.data()[0],
-            ump_minor_version: self.data()[1],
-            function_block_count: self.data()[2],
-            m1_support: self.data()[3],
-            m2_support: self.data()[4],
-            jitter_reduction_support: self.data()[5],
-        }
+    pub fn get_endpoint_discovery(&self) -> EndpointDiscovery {
+        todo!()
     }
 
-    pub fn endpoint_name_notification(&self) -> EndpointNameIdentification {
-        EndpointNameIdentification(self.data())
+    pub fn get_endpoint_info_notification(&self) -> EndpointInfoNotification {
+        todo!()
     }
 
-    pub fn product_instance_id_notification(&self) -> ProductInstanceIdNotification {
-        ProductInstanceIdNotification(self.data())
+    pub fn get_endpoint_name_notification(&self) -> EndpointNameIdentification {
+        todo!()
     }
 
-    pub fn stream_configuration_request(&self) -> StreamConfigurationRequest {
-        StreamConfigurationRequest {
-            protocol: self.data()[0],
-            jitter_reduction: self.data()[1],
-        }
+    pub fn get_product_instance_id_notification(&self) -> ProductInstanceIdNotification {
+        todo!()
     }
 
-    pub fn stream_configuration_notification(&self) -> StreamConfigurationNotification {
-        StreamConfigurationNotification {
-            protocol: self.data()[0],
-            jitter_reduction: self.data()[1],
-        }
+    pub fn get_stream_configuration_request(&self) -> StreamConfigurationRequest {
+        todo!()
     }
 
-    pub fn function_block_discovery(&self) -> FunctionBlockDiscovery {
-        FunctionBlockDiscovery {
-            function_block_count: self.data()[0],
-            filter_bitmap: self.data()[1],
-        }
+    pub fn get_stream_configuration_notification(&self) -> StreamConfigurationNotification {
+        todo!()
     }
 
-    pub fn function_block_info_notification(&self) -> FunctionBlockInfoNotification {
-        FunctionBlockInfoNotification {
-            function_block_count: self.data()[0],
-            function_block_data: [
-                self.data()[1],
-                self.data()[2],
-                self.data()[3],
-                self.data()[4],
-                self.data()[5],
-            ],
-        }
+    pub fn get_function_block_discovery(&self) -> FunctionBlockDiscovery {
+        todo!()
     }
 
-    pub fn function_block_name_notification(&self) -> FunctionBlockNameNotification {
+    pub fn get_function_block_info_notification(&self) -> FunctionBlockInfoNotification {
+        todo!()
+    }
+
+    pub fn get_function_block_name_notification(&self) -> FunctionBlockNameNotification {
         todo!()
     }
 }

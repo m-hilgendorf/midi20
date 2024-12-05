@@ -12,12 +12,12 @@ The goal of this crate is to allow device and application authors to encode/deco
 - [x] serialize/deserialize from universal midi packets (UMP) 
 - [x] MUID generation (requires `std`)
 - [x] MIDI 2 AST 
+- [x] Conversion from MIDI 1.0 channel voice messages to MIDI 2.0 (increase resolution)
 
 ### Todos: 
 - [ ] System exclusive helpers
 - [ ] Capability inquiry (MIDI-CI)
 - [ ] Property exchange (MIDI-PE)
-- [ ] Conversion from MIDI 1.0 channel voice messages to MIDI 2.0 (increase resolution)
 
 [discord-url]: https://discord.com/channels/590254806208217089/932384555900493945
 [discord-img]: https://img.shields.io/discord/590254806208217089.svg?label=Discord&logo=discord&color=blue
@@ -38,5 +38,3 @@ Contributions are very much welcome! Here are some good first issues:
 If you make a PR, make sure to update the `authors` field in [Cargo.toml](./Cargo.toml). 
 
 Come discuss on the [Rust Audio discord!](https://discord.com/channels/590254806208217089/932384555900493945)
-
-

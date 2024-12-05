@@ -149,7 +149,7 @@ impl ChannelVoice {
     }
 
     /// Create a new note off message.
-    pub fn note_on(note: u8, velocity: u8, attribute: Option<Attribute>) -> Self {
+    pub fn note_on(note: u8, velocity: u16, attribute: Option<Attribute>) -> Self {
         debug_assert!(note < 128, "Note numbers must be in the range [0, 127].");
         let (attr_type, attr_data) = match attribute {
             None => (0, 0),

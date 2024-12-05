@@ -1,10 +1,6 @@
 [package]
 name = "midi20"
-version = "0.2.0"
-authors = [
-  "Mike Hilgendorf <mike@hilgendorf.audio>",
-  "Lukas Navickas <lukas.navickas@icloud.com>"
-]
+version = "0.3.0"
 edition = "2018"
 license = "MIT"
 description = "Types and helpers for building MIDI 2.0 capable software."

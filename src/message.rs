@@ -3,7 +3,9 @@
 //! MIDI 2.0 Messages form a mostly flat abstract syntax tree. MIDI 1.0 types are represented by
 //! the [LegacyChannelVoice] enum.
 use crate::packet::*;
-use std::{convert::TryInto, fmt, mem, ops::Deref, slice};
+use core::{convert::TryInto, fmt, mem, ops::Deref, slice};
+
+use self::channel2::ChannelVoice;
 
 pub mod channel1;
 pub mod channel2;
@@ -196,6 +198,20 @@ impl Data {
             _ => None,
         }
     }
+}
+
+/// Returns an iterator over the midi messages in the buffer.
+pub fn messages<'a>(buffer: &'a [u32]) -> Iter<'a> {
+    Iter::new(buffer)
+}
+
+/// Returns an iterator over channel voice messages in the buffer, converting from MIDI 1 channel voice to MIDI 2.
+pub fn channel_voice<'a>(buffer: &'a [u32]) -> impl Iterator<Item = ChannelVoice> + 'a {
+    messages(buffer).filter_map(|data| match data {
+        Data::LegacyChannelVoice(data) => Some(data.into()),
+        Data::ChannelVoice(data) => Some(data),
+        _ => None,
+    })
 }
 
 /// An iterator over messages in a buffer of u32.
