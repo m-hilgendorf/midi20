@@ -7,7 +7,9 @@ description = "Types and helpers for building MIDI 2.0 capable software."
 repository = "https://github.com/m-hilgendorf/midi20"
 
 [dependencies]
+vst3 = { version = "0.1", optional = true }
 
 [features]
 default = []
 no-std = []
+vst3 = ["dep:vst3"]
